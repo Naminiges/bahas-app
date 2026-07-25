@@ -134,7 +134,13 @@ export default function Home() {
       options: { emailRedirectTo: window.location.origin },
     })
     const isRateLimited = error?.message.toLowerCase().includes("rate limit")
-    setLoginStatus(error ? (isRateLimited ? "Anda terkena limit, coba 5 menit lagi" : error.message) : "Cek email untuk link login.")
+    setLoginStatus(
+      error
+        ? isRateLimited
+          ? "Anda terkena limit email. Tunggu beberapa menit sampai 1 jam, lalu coba lagi."
+          : error.message
+        : "Cek email untuk link login.",
+    )
   }
 
   if (checkingAuth) {

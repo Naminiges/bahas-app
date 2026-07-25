@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import type { User } from "@supabase/supabase-js"
+import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
+import longLogo from "./long-logo.svg"
+import primaryLogo from "./primary-logo.svg"
 
 type Tab = "prepare" | "practice" | "rewrite"
 type Difficulty = "kalem" | "emosian"
@@ -135,43 +138,51 @@ export default function Home() {
 
   if (checkingAuth) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#f6f7f4] px-6 text-[#1f2520]">
-        <p className="text-sm font-medium">Memeriksa sesi...</p>
+      <main className="app-shell grid place-items-center px-6">
+        <div className="card-soft flex items-center gap-3">
+          <Image className="logo-icon h-9 w-9" src={primaryLogo} alt="Bahas" priority />
+          <p className="text-sm font-medium text-neutral-600">Memeriksa sesi...</p>
+        </div>
       </main>
     )
   }
 
   if (!user) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#f6f7f4] px-6 text-[#1f2520]">
-        <section className="w-full max-w-md rounded-lg border border-[#d8ddd0] bg-white p-6 shadow-sm">
-          <div className="space-y-2">
-            <p className="text-sm font-semibold uppercase tracking-wide text-[#c25534]">Bahas</p>
-            <h1 className="text-3xl font-semibold">Latihan ngobrol uang, sebelum ngobrol beneran.</h1>
-            <p className="text-sm leading-6 text-[#586151]">
+      <main className="app-shell grid place-items-center px-6 py-10">
+        <section className="card-soft w-full max-w-md p-8">
+          <div className="space-y-4">
+            <Image className="logo-wordmark" src={longLogo} alt="Bahas" priority />
+            <div className="space-y-3">
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary-700">Bahas</p>
+              <h1 className="text-4xl font-bold leading-tight tracking-[-0.03em] text-neutral-900">
+                Latihan ngobrol uang, sebelum ngobrol beneran.
+              </h1>
+            </div>
+            <p className="text-base leading-7 text-neutral-600">
               Masuk dengan magic link untuk menyimpan skenario, sesi latihan, dan kalimat andalan secara privat.
             </p>
           </div>
-          <div className="mt-6 space-y-3">
-            <label className="block text-sm font-medium" htmlFor="email">
+          <div className="mt-8 space-y-4">
+            <label className="field-label" htmlFor="email">
               Email
             </label>
             <input
               id="email"
-              className="w-full rounded-md border border-[#cbd3c0] bg-white px-3 py-2 text-sm outline-none focus:border-[#2f6f4e] focus:ring-2 focus:ring-[#2f6f4e]/20"
+              className="input"
               placeholder="nama@email.com"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
             <button
-              className="w-full rounded-md bg-[#1f2520] px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#8d9388]"
+              className="btn btn-primary w-full"
               disabled={!email}
               onClick={signIn}
             >
               Kirim Link Login
             </button>
-            {loginStatus ? <p className="text-sm text-[#586151]">{loginStatus}</p> : null}
+            {loginStatus ? <p className="status-callout text-sm">{loginStatus}</p> : null}
           </div>
         </section>
       </main>
@@ -342,17 +353,22 @@ function BahasApp({ user }: { user: User }) {
   const latestScore = conversations.find((item) => typeof item.drama_score === "number")?.drama_score ?? null
 
   return (
-    <main className="min-h-screen bg-[#f6f7f4] text-[#1f2520]">
-      <header className="border-b border-[#d8ddd0] bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-[#c25534]">Bahas</p>
-            <h1 className="text-2xl font-semibold">Latihan ngobrol uang, sebelum ngobrol beneran.</h1>
+    <main className="app-shell">
+      <header className="app-header">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex items-center gap-3">
+            <Image className="logo-icon" src={primaryLogo} alt="Bahas" priority />
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary-700">Bahas</p>
+              <h1 className="text-xl font-semibold tracking-[-0.02em] text-neutral-900 sm:text-2xl">
+                Latihan ngobrol uang, sebelum ngobrol beneran.
+              </h1>
+            </div>
           </div>
-          <div className="flex items-center gap-3 text-sm text-[#586151]">
-            <span className="max-w-[220px] truncate">{user.email}</span>
+          <div className="flex items-center gap-3 text-sm text-neutral-500">
+            <span className="max-w-[220px] truncate rounded-full bg-neutral-100 px-3 py-2">{user.email}</span>
             <button
-              className="rounded-md border border-[#cbd3c0] px-3 py-2 font-medium text-[#1f2520] hover:bg-[#eef1ea]"
+              className="btn btn-secondary min-h-10 px-4"
               onClick={() => supabase.auth.signOut()}
             >
               Keluar
@@ -361,17 +377,13 @@ function BahasApp({ user }: { user: User }) {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-6xl gap-5 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="space-y-5">
-          <nav className="flex flex-wrap gap-2">
+      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <section className="space-y-6">
+          <nav className="tabs-shell">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                className={`rounded-md border px-4 py-2 text-sm font-semibold ${
-                  activeTab === tab.id
-                    ? "border-[#2f6f4e] bg-[#2f6f4e] text-white"
-                    : "border-[#cbd3c0] bg-white text-[#1f2520] hover:bg-[#eef1ea]"
-                }`}
+                className={`tab-button ${activeTab === tab.id ? "tab-button-active" : ""}`}
                 onClick={() => setActiveTab(tab.id)}
               >
                 {tab.label}
@@ -380,21 +392,29 @@ function BahasApp({ user }: { user: User }) {
           </nav>
 
           {riskMessage ? (
-            <div className="rounded-lg border border-[#d8876d] bg-[#fff2ed] p-4 text-sm leading-6 text-[#7b2d17]">
-              {riskMessage}
+            <div className="callout-danger text-sm leading-6">
+              <p className="font-semibold text-danger">Rujukan bantuan</p>
+              <p className="mt-1">{riskMessage}</p>
             </div>
           ) : null}
           {status ? (
-            <div className="rounded-lg border border-[#d8ddd0] bg-white p-4 text-sm text-[#586151]">{status}</div>
+            <div className="status-callout text-sm">{status}</div>
           ) : null}
 
           {activeTab === "prepare" ? (
-            <section className="rounded-lg border border-[#d8ddd0] bg-white p-5 shadow-sm">
+            <section className="card">
+              <div className="mb-6 flex flex-col gap-2">
+                <span className="chip chip-relation w-fit">Siapkan percakapan</span>
+                <h2 className="text-2xl font-semibold tracking-[-0.02em] text-neutral-900">Buat titik mulai yang aman</h2>
+                <p className="text-sm leading-6 text-neutral-500">
+                  Ceritakan konteksnya, lalu Bahas menyusun naskah pembuka dan prediksi respons.
+                </p>
+              </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="space-y-2 text-sm font-medium">
-                  Relasi
+                <label className="space-y-2">
+                  <span className="field-label">Relasi</span>
                   <select
-                    className="w-full rounded-md border border-[#cbd3c0] bg-white px-3 py-2 outline-none focus:border-[#2f6f4e] focus:ring-2 focus:ring-[#2f6f4e]/20"
+                    className="input"
                     value={relation}
                     onChange={(event) => setRelation(event.target.value as (typeof relations)[number])}
                   >
@@ -403,26 +423,26 @@ function BahasApp({ user }: { user: User }) {
                     ))}
                   </select>
                 </label>
-                <label className="space-y-2 text-sm font-medium">
-                  Ketakutan utama
+                <label className="space-y-2">
+                  <span className="field-label">Ketakutan utama</span>
                   <input
-                    className="w-full rounded-md border border-[#cbd3c0] bg-white px-3 py-2 outline-none focus:border-[#2f6f4e] focus:ring-2 focus:ring-[#2f6f4e]/20"
+                    className="input"
                     value={fear}
                     onChange={(event) => setFear(event.target.value)}
                   />
                 </label>
               </div>
-              <label className="mt-4 block space-y-2 text-sm font-medium">
-                Situasi
+              <label className="mt-5 block space-y-2">
+                <span className="field-label">Situasi</span>
                 <textarea
-                  className="min-h-32 w-full rounded-md border border-[#cbd3c0] bg-white px-3 py-2 outline-none focus:border-[#2f6f4e] focus:ring-2 focus:ring-[#2f6f4e]/20"
+                  className="input min-h-32 resize-y"
                   value={situation}
                   onChange={(event) => setSituation(event.target.value)}
                 />
               </label>
-              <div className="mt-4 flex flex-wrap gap-3">
+              <div className="mt-5 flex flex-wrap gap-3">
                 <button
-                  className="rounded-md bg-[#1f2520] px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#8d9388]"
+                  className="btn btn-primary"
                   disabled={busy === "scenario" || !situation.trim()}
                   onClick={createScenario}
                 >
@@ -430,7 +450,7 @@ function BahasApp({ user }: { user: User }) {
                 </button>
                 {scenario ? (
                   <button
-                    className="rounded-md border border-[#cbd3c0] px-4 py-2.5 text-sm font-semibold hover:bg-[#eef1ea]"
+                    className="btn btn-secondary"
                     onClick={() => setActiveTab("practice")}
                   >
                     Latih Ini
@@ -439,22 +459,22 @@ function BahasApp({ user }: { user: User }) {
               </div>
 
               {scenario ? (
-                <div className="mt-5 grid gap-4">
+                <div className="mt-7 grid gap-5">
                   <ResultBlock title="Naskah pembuka" text={scenario.opening_script ?? "-"} />
                   <ResultBlock title="Catatan budaya" text={scenario.cultural_note ?? "-"} />
                   <div>
-                    <h2 className="text-sm font-semibold">Prediksi reaksi</h2>
-                    <div className="mt-2 grid gap-3">
+                    <h2 className="text-sm font-semibold text-neutral-800">Prediksi reaksi</h2>
+                    <div className="mt-3 grid gap-3">
                       {(scenario.predicted_reactions ?? []).map((item, index) => (
-                        <article key={`${item.reaksi}-${index}`} className="rounded-lg border border-[#d8ddd0] p-4">
-                          <p className="text-sm font-semibold">{item.reaksi}</p>
-                          <p className="mt-1 text-sm leading-6 text-[#586151]">{item.saran_respons}</p>
+                        <article key={`${item.reaksi}-${index}`} className="rounded-2xl bg-neutral-50 p-4 shadow-[inset_0_0_0_1px_var(--color-neutral-100)]">
+                          <p className="text-sm font-semibold text-neutral-900">{item.reaksi}</p>
+                          <p className="mt-1 text-sm leading-6 text-neutral-500">{item.saran_respons}</p>
                         </article>
                       ))}
                     </div>
                   </div>
                   <button
-                    className="w-fit rounded-md border border-[#2f6f4e] px-4 py-2 text-sm font-semibold text-[#2f6f4e] hover:bg-[#eaf4ed]"
+                    className="btn btn-ghost w-fit"
                     onClick={() => saveLine(scenario.opening_script ?? "", "opening_script")}
                   >
                     Simpan Kalimat
@@ -465,21 +485,23 @@ function BahasApp({ user }: { user: User }) {
           ) : null}
 
           {activeTab === "practice" ? (
-            <section className="rounded-lg border border-[#d8ddd0] bg-white p-5 shadow-sm">
+            <section className="card">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold">Roleplay</h2>
-                  <p className="text-sm text-[#586151]">
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    <span className="chip chip-relation">{scenario?.relation ?? "Skenario"}</span>
+                    <span className={`chip ${difficulty === "kalem" ? "chip-kalem" : "chip-emosian"}`}>{difficulty}</span>
+                  </div>
+                  <h2 className="text-2xl font-semibold tracking-[-0.02em] text-neutral-900">Roleplay</h2>
+                  <p className="text-sm leading-6 text-neutral-500">
                     {scenario ? `${scenario.relation} - ${scenario.topic ?? "topik uang"}` : "Buat skenario dulu di tab Siapkan."}
                   </p>
                 </div>
-                <div className="flex rounded-md border border-[#cbd3c0] bg-[#eef1ea] p-1">
+                <div className="tabs-shell">
                   {(["kalem", "emosian"] as const).map((item) => (
                     <button
                       key={item}
-                      className={`rounded px-3 py-1.5 text-sm font-semibold ${
-                        difficulty === item ? "bg-white text-[#1f2520] shadow-sm" : "text-[#586151]"
-                      }`}
+                      className={`tab-button min-h-9 px-4 ${difficulty === item ? "tab-button-active" : ""}`}
                       onClick={() => setDifficulty(item)}
                     >
                       {item}
@@ -488,20 +510,20 @@ function BahasApp({ user }: { user: User }) {
                 </div>
               </div>
 
-              <div className="mt-4 min-h-64 space-y-3 rounded-lg border border-[#d8ddd0] bg-[#fafbf8] p-4">
+              <div className="mt-6 flex min-h-80 flex-col gap-4 rounded-[24px] bg-neutral-50 p-4 shadow-[inset_0_0_0_1px_var(--color-neutral-100)] sm:p-5">
                 {messages.length === 0 ? (
-                  <p className="text-sm leading-6 text-[#586151]">
-                    Mulai dengan naskah pembuka dari tab Siapkan, atau tulis versi kamu sendiri.
-                  </p>
+                  <div className="m-auto max-w-sm text-center">
+                    <Image className="logo-icon mx-auto mb-4 h-12 w-12" src={primaryLogo} alt="Bahas" />
+                    <h3 className="text-lg font-semibold tracking-[-0.01em] text-neutral-900">Belum ada latihan</h3>
+                    <p className="mt-2 text-sm leading-6 text-neutral-500">
+                      Mulai dengan naskah pembuka dari tab Siapkan, atau tulis versi kamu sendiri.
+                    </p>
+                  </div>
                 ) : null}
                 {messages.map((message, index) => (
                   <div
                     key={`${message.role}-${index}`}
-                    className={`max-w-[88%] rounded-lg px-3 py-2 text-sm leading-6 ${
-                      message.role === "user"
-                        ? "ml-auto bg-[#2f6f4e] text-white"
-                        : "bg-white text-[#1f2520] ring-1 ring-[#d8ddd0]"
-                    }`}
+                    className={`bubble ${message.role === "user" ? "bubble-me" : "bubble-them"}`}
                   >
                     {message.content}
                   </div>
@@ -510,7 +532,7 @@ function BahasApp({ user }: { user: User }) {
 
               <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
                 <input
-                  className="rounded-md border border-[#cbd3c0] bg-white px-3 py-2 text-sm outline-none focus:border-[#2f6f4e] focus:ring-2 focus:ring-[#2f6f4e]/20"
+                  className="input"
                   disabled={!scenario}
                   placeholder={scenario?.opening_script ?? "Tulis respons kamu"}
                   value={userMessage}
@@ -520,7 +542,7 @@ function BahasApp({ user }: { user: User }) {
                   }}
                 />
                 <button
-                  className="rounded-md bg-[#1f2520] px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#8d9388]"
+                  className="btn btn-primary"
                   disabled={!scenario || !userMessage.trim() || busy === "roleplay"}
                   onClick={sendRoleplay}
                 >
@@ -529,14 +551,14 @@ function BahasApp({ user }: { user: User }) {
               </div>
               <div className="mt-3 flex flex-wrap gap-3">
                 <button
-                  className="rounded-md border border-[#cbd3c0] px-4 py-2 text-sm font-semibold hover:bg-[#eef1ea]"
+                  className="btn btn-secondary"
                   disabled={!scenario?.opening_script}
                   onClick={() => setUserMessage(scenario?.opening_script ?? "")}
                 >
                   Pakai Naskah
                 </button>
                 <button
-                  className="rounded-md border border-[#c25534] px-4 py-2 text-sm font-semibold text-[#a03d20] hover:bg-[#fff2ed] disabled:cursor-not-allowed disabled:border-[#d8ddd0] disabled:text-[#8d9388]"
+                  className="btn btn-danger"
                   disabled={!scenario || messages.length === 0 || busy === "feedback"}
                   onClick={finishSession}
                 >
@@ -545,12 +567,8 @@ function BahasApp({ user }: { user: User }) {
               </div>
 
               {feedback ? (
-                <div className="mt-5 grid gap-4 sm:grid-cols-[160px_minmax(0,1fr)]">
-                  <div className="rounded-lg border border-[#d8ddd0] bg-[#f6f7f4] p-4">
-                    <p className="text-sm font-semibold text-[#586151]">Skor drama</p>
-                    <p className="mt-2 text-4xl font-semibold text-[#c25534]">{feedback.drama_score}</p>
-                    <p className="text-sm text-[#586151]">/100</p>
-                  </div>
+                <div className="mt-6 grid gap-5 rounded-[24px] bg-neutral-50 p-5 shadow-[inset_0_0_0_1px_var(--color-neutral-100)] sm:grid-cols-[200px_minmax(0,1fr)]">
+                  <DramaMeter score={feedback.drama_score} />
                   <div className="grid gap-3">
                     <ListBlock title="Pemicu" items={feedback.triggers} />
                     <ListBlock title="Peredam" items={feedback.deescalators} />
@@ -562,12 +580,19 @@ function BahasApp({ user }: { user: User }) {
           ) : null}
 
           {activeTab === "rewrite" ? (
-            <section className="rounded-lg border border-[#d8ddd0] bg-white p-5 shadow-sm">
+            <section className="card">
+              <div className="mb-6 flex flex-col gap-2">
+                <span className="chip chip-relation w-fit">Transform</span>
+                <h2 className="text-2xl font-semibold tracking-[-0.02em] text-neutral-900">Terjemahkan nada pesan</h2>
+                <p className="text-sm leading-6 text-neutral-500">
+                  Ubah kalimat emosional menjadi versi yang lebih sopan, jelas, dan tidak menuduh.
+                </p>
+              </div>
               <div className="grid gap-4 sm:grid-cols-[180px_minmax(0,1fr)]">
-                <label className="space-y-2 text-sm font-medium">
-                  Relasi
+                <label className="space-y-2">
+                  <span className="field-label">Relasi</span>
                   <select
-                    className="w-full rounded-md border border-[#cbd3c0] bg-white px-3 py-2 outline-none focus:border-[#2f6f4e] focus:ring-2 focus:ring-[#2f6f4e]/20"
+                    className="input"
                     value={relation}
                     onChange={(event) => setRelation(event.target.value as (typeof relations)[number])}
                   >
@@ -576,28 +601,28 @@ function BahasApp({ user }: { user: User }) {
                     ))}
                   </select>
                 </label>
-                <label className="space-y-2 text-sm font-medium">
-                  Pesan asli
+                <label className="space-y-2">
+                  <span className="field-label">Pesan asli</span>
                   <textarea
-                    className="min-h-28 w-full rounded-md border border-[#cbd3c0] bg-white px-3 py-2 outline-none focus:border-[#2f6f4e] focus:ring-2 focus:ring-[#2f6f4e]/20"
+                    className="input min-h-28 resize-y"
                     value={rewriteInput}
                     onChange={(event) => setRewriteInput(event.target.value)}
                   />
                 </label>
               </div>
               <button
-                className="mt-4 rounded-md bg-[#1f2520] px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#8d9388]"
+                className="btn btn-primary mt-5"
                 disabled={!rewriteInput.trim() || busy === "rewrite"}
                 onClick={rewriteTone}
               >
                 {busy === "rewrite" ? "Menulis..." : "Tulis Ulang"}
               </button>
               {rewriteResult ? (
-                <div className="mt-5 grid gap-4">
+                <div className="mt-7 grid gap-5">
                   <ResultBlock title="Versi aman" text={rewriteResult.rewritten} />
                   <ResultBlock title="Catatan" text={rewriteResult.note} />
                   <button
-                    className="w-fit rounded-md border border-[#2f6f4e] px-4 py-2 text-sm font-semibold text-[#2f6f4e] hover:bg-[#eaf4ed]"
+                    className="btn btn-ghost w-fit"
                     onClick={() => saveLine(rewriteResult.rewritten, "rewrite")}
                   >
                     Simpan Kalimat
@@ -608,9 +633,9 @@ function BahasApp({ user }: { user: User }) {
           ) : null}
         </section>
 
-        <aside className="space-y-5">
-          <section className="rounded-lg border border-[#d8ddd0] bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold">Kemajuan</h2>
+        <aside className="space-y-6">
+          <section className="card">
+            <h2 className="text-xl font-semibold tracking-[-0.02em] text-neutral-900">Kemajuan</h2>
             <div className="mt-4 grid grid-cols-3 gap-3">
               <Metric label="Sesi" value={conversations.length.toString()} />
               <Metric label="Skor" value={latestScore === null ? "-" : latestScore.toString()} />
@@ -618,45 +643,47 @@ function BahasApp({ user }: { user: User }) {
             </div>
           </section>
 
-          <section className="rounded-lg border border-[#d8ddd0] bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold">Kalimat Andalan</h2>
+          <section className="card">
+            <h2 className="text-xl font-semibold tracking-[-0.02em] text-neutral-900">Kalimat Andalan</h2>
             <div className="mt-4 space-y-3">
               <textarea
-                className="min-h-20 w-full rounded-md border border-[#cbd3c0] px-3 py-2 text-sm outline-none focus:border-[#2f6f4e] focus:ring-2 focus:ring-[#2f6f4e]/20"
+                className="input min-h-24 resize-y text-sm"
                 placeholder="Kalimat yang mau disimpan"
                 value={saveLineText}
                 onChange={(event) => setSaveLineText(event.target.value)}
               />
               <button
-                className="w-full rounded-md border border-[#2f6f4e] px-4 py-2 text-sm font-semibold text-[#2f6f4e] hover:bg-[#eaf4ed] disabled:cursor-not-allowed disabled:border-[#d8ddd0] disabled:text-[#8d9388]"
+                className="btn btn-secondary w-full"
                 disabled={!saveLineText.trim() || busy === "save"}
                 onClick={() => saveLine(saveLineText, "manual")}
               >
                 Simpan
               </button>
-              {savedLines.length === 0 ? <p className="text-sm text-[#586151]">Belum ada kalimat tersimpan.</p> : null}
+              {savedLines.length === 0 ? <p className="text-sm leading-6 text-neutral-500">Belum ada kalimat tersimpan.</p> : null}
               {savedLines.map((line) => (
-                <article key={line.id} className="rounded-lg border border-[#d8ddd0] p-3">
-                  <p className="text-sm leading-6">{line.text}</p>
-                  <p className="mt-2 text-xs uppercase tracking-wide text-[#8d9388]">{line.source ?? "manual"}</p>
+                <article key={line.id} className="rounded-2xl bg-neutral-50 p-4 shadow-[inset_0_0_0_1px_var(--color-neutral-100)]">
+                  <p className="text-sm leading-6 text-neutral-700">{line.text}</p>
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-neutral-400">{line.source ?? "manual"}</p>
                 </article>
               ))}
             </div>
           </section>
 
-          <section className="rounded-lg border border-[#d8ddd0] bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold">Riwayat Latihan</h2>
+          <section className="card">
+            <h2 className="text-xl font-semibold tracking-[-0.02em] text-neutral-900">Riwayat Latihan</h2>
             <div className="mt-4 space-y-3">
-              {conversations.length === 0 ? <p className="text-sm text-[#586151]">Belum ada sesi selesai.</p> : null}
+              {conversations.length === 0 ? <p className="text-sm leading-6 text-neutral-500">Belum ada sesi selesai.</p> : null}
               {conversations.map((conversation) => (
-                <article key={conversation.id} className="rounded-lg border border-[#d8ddd0] p-3">
+                <article key={conversation.id} className="rounded-2xl bg-neutral-50 p-4 shadow-[inset_0_0_0_1px_var(--color-neutral-100)]">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold">{conversation.difficulty}</p>
-                    <p className="text-sm font-semibold text-[#c25534]">{conversation.drama_score ?? "-"}/100</p>
+                    <span className={`chip ${conversation.difficulty === "kalem" ? "chip-kalem" : "chip-emosian"}`}>
+                      {conversation.difficulty}
+                    </span>
+                    <p className="font-mono text-sm font-semibold text-primary-700">{conversation.drama_score ?? "-"}/100</p>
                   </div>
-                  <p className="mt-1 text-xs text-[#8d9388]">{formatDate(conversation.created_at)}</p>
+                  <p className="mt-2 text-xs font-medium text-neutral-400">{formatDate(conversation.created_at)}</p>
                   {conversation.feedback?.improvement ? (
-                    <p className="mt-2 text-sm leading-6 text-[#586151]">{conversation.feedback.improvement}</p>
+                    <p className="mt-2 text-sm leading-6 text-neutral-500">{conversation.feedback.improvement}</p>
                   ) : null}
                 </article>
               ))}
@@ -671,8 +698,8 @@ function BahasApp({ user }: { user: User }) {
 function ResultBlock({ title, text }: { title: string; text: string }) {
   return (
     <div>
-      <h2 className="text-sm font-semibold">{title}</h2>
-      <p className="mt-2 rounded-lg border border-[#d8ddd0] bg-[#fafbf8] p-4 text-sm leading-6 text-[#1f2520]">{text}</p>
+      <h2 className="text-sm font-semibold text-neutral-800">{title}</h2>
+      <p className="result-panel mt-3 text-sm leading-6">{text}</p>
     </div>
   )
 }
@@ -680,11 +707,11 @@ function ResultBlock({ title, text }: { title: string; text: string }) {
 function ListBlock({ title, items }: { title: string; items: string[] }) {
   return (
     <div>
-      <h2 className="text-sm font-semibold">{title}</h2>
+      <h2 className="text-sm font-semibold text-neutral-800">{title}</h2>
       <ul className="mt-2 space-y-2">
-        {items.length === 0 ? <li className="text-sm text-[#586151]">Tidak ada.</li> : null}
+        {items.length === 0 ? <li className="text-sm text-neutral-500">Tidak ada.</li> : null}
         {items.map((item, index) => (
-          <li key={`${title}-${index}`} className="rounded-lg border border-[#d8ddd0] bg-[#fafbf8] p-3 text-sm leading-6">
+          <li key={`${title}-${index}`} className="rounded-2xl bg-white p-3 text-sm leading-6 text-neutral-600 shadow-[inset_0_0_0_1px_var(--color-neutral-100)]">
             {item}
           </li>
         ))}
@@ -695,9 +722,33 @@ function ListBlock({ title, items }: { title: string; items: string[] }) {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[#d8ddd0] bg-[#fafbf8] p-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-[#8d9388]">{label}</p>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
+    <div className="metric-card">
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-400">{label}</p>
+      <p className="mt-1 font-mono text-2xl font-semibold text-neutral-900">{value}</p>
+    </div>
+  )
+}
+
+function DramaMeter({ score }: { score: number }) {
+  const clampedScore = Math.min(100, Math.max(0, score))
+  const meterColor = clampedScore <= 33 ? "bg-success" : clampedScore <= 66 ? "bg-warning" : "bg-danger"
+  const textColor = clampedScore <= 33 ? "text-success" : clampedScore <= 66 ? "text-warning" : "text-danger"
+  const status = clampedScore <= 33 ? "Adem" : clampedScore <= 66 ? "Mulai tegang" : "Nyaris meledak"
+
+  return (
+    <div className="rounded-2xl bg-white p-5 shadow-sm">
+      <p className="text-sm font-semibold text-neutral-500">Skor drama</p>
+      <div className="mt-2 flex items-end gap-1">
+        <p className={`font-mono text-5xl font-semibold leading-none ${textColor}`}>{clampedScore}</p>
+        <p className="pb-1 font-mono text-sm text-neutral-400">/100</p>
+      </div>
+      <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-neutral-100">
+        <div
+          className={`h-full rounded-full ${meterColor} transition-[width] duration-300 ease-out`}
+          style={{ width: `${clampedScore}%` }}
+        />
+      </div>
+      <p className={`mt-3 text-sm font-semibold ${textColor}`}>{status}</p>
     </div>
   )
 }

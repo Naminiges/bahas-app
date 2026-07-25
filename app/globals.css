@@ -95,7 +95,7 @@ body {
     height: 40px;
     width: 40px;
     border-radius: 14px;
-    box-shadow: var(--shadow-brand);
+    background: #ffffff;
   }
 
   .logo-wordmark {
@@ -103,7 +103,7 @@ body {
     height: 72px;
     width: 72px;
     border-radius: 22px;
-    box-shadow: var(--shadow-brand);
+    background: #ffffff;
   }
 
   .card {

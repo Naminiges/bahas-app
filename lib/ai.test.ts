@@ -8,4 +8,7 @@ describe("checkRisk", () => {
   it("aman untuk situasi biasa", () => {
     expect(checkRisk("adik pinjam uang terus").risky).toBe(false)
   })
+  it("mengembalikan rujukan saat risiko terdeteksi", () => {
+    expect(checkRisk("aku takut karena ada ancaman").resource).toContain("SAPA 129")
+  })
 })

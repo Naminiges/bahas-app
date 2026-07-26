@@ -243,6 +243,7 @@ function BahasApp({ user }: { user: User }) {
   const [riskMessage, setRiskMessage] = useState("")
   const [busy, setBusy] = useState("")
   const [accountOpen, setAccountOpen] = useState(false)
+  const [signOutOpen, setSignOutOpen] = useState(false)
 
   const refreshHistory = useCallback(async () => {
     const [lines, sessions] = await Promise.all([
@@ -435,10 +436,20 @@ function BahasApp({ user }: { user: User }) {
     }
   }
 
+  function requestSignOut() {
+    setAccountOpen(false)
+    setSignOutOpen(true)
+  }
+
   async function confirmSignOut() {
-    const confirmed = window.confirm("Yakin keluar dari Bahas?")
-    if (!confirmed) return
-    await supabase.auth.signOut()
+    setBusy("signout")
+    setStatus("")
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      setStatus(error.message)
+      setBusy("")
+      setSignOutOpen(false)
+    }
   }
 
   const latestScore = conversations.find((item) => typeof item.drama_score === "number")?.drama_score ?? null
@@ -475,7 +486,7 @@ function BahasApp({ user }: { user: User }) {
                 </Link>
                 <button
                   className="block w-full rounded-xl px-4 py-3 text-left text-sm font-semibold text-danger hover:bg-[#FEF2F2]"
-                  onClick={confirmSignOut}
+                  onClick={requestSignOut}
                 >
                   Keluar
                 </button>
@@ -594,37 +605,41 @@ function BahasApp({ user }: { user: User }) {
 
           {activeTab === "practice" ? (
             <section className="card">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px] md:items-start">
+                <div className="min-w-0">
                   <div className="mb-2 flex flex-wrap gap-2">
                     <span className="chip chip-relation">{scenario?.relation ?? "Skenario"}</span>
                     <span className={`chip ${difficulty === "kalem" ? "chip-kalem" : "chip-emosian"}`}>{difficulty}</span>
                   </div>
                   <h2 className="text-2xl font-semibold tracking-[-0.02em] text-neutral-900">Roleplay</h2>
-                  <p className="text-sm leading-6 text-neutral-500">
+                  <p className="mt-1 max-w-2xl break-words text-sm leading-6 text-neutral-500">
                     {scenario ? `${scenario.relation} - ${scenario.topic ?? "topik uang"}` : "Buat skenario dulu di tab Siapkan."}
                   </p>
                 </div>
-                <div className="flex flex-col gap-3 sm:items-end">
-                  <div className="tabs-shell">
+                <div className="rounded-2xl bg-neutral-50 p-3 shadow-[inset_0_0_0_1px_var(--color-neutral-100)]">
+                  <div className="grid grid-cols-2 gap-1 rounded-full bg-neutral-100 p-1 shadow-[inset_0_0_0_1px_rgba(203,209,219,0.48)]">
                     {(["kalem", "emosian"] as const).map((item) => (
                       <button
                         key={item}
-                        className={`tab-button min-h-9 px-4 ${difficulty === item ? "tab-button-active" : ""}`}
+                        className={`min-h-9 rounded-full px-3 text-sm font-semibold transition ${
+                          difficulty === item
+                            ? "bg-white text-primary-700 shadow-sm"
+                            : "text-neutral-500 hover:text-neutral-700"
+                        }`}
                         onClick={() => setDifficulty(item)}
                       >
                         {item}
                       </button>
                     ))}
                   </div>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-neutral-600">
+                  <label className="mt-3 flex min-h-10 items-center justify-between gap-3 rounded-xl bg-white px-3 text-sm font-semibold text-neutral-600 shadow-[inset_0_0_0_1px_var(--color-neutral-100)]">
+                    <span>Mode adaptif</span>
                     <input
                       className="h-4 w-4 accent-primary-700"
                       type="checkbox"
                       checked={adaptiveMode}
                       onChange={(event) => setAdaptiveMode(event.target.checked)}
                     />
-                    Mode adaptif
                   </label>
                 </div>
               </div>
@@ -851,6 +866,50 @@ function BahasApp({ user }: { user: User }) {
           </section>
         </aside>
       </div>
+
+      {signOutOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/45 px-4 py-6 backdrop-blur-sm"
+          role="presentation"
+          onClick={() => setSignOutOpen(false)}
+        >
+          <section
+            aria-labelledby="signout-title"
+            aria-modal="true"
+            className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl ring-1 ring-neutral-100"
+            role="dialog"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start gap-4">
+              <Image className="logo-icon h-11 w-11" src={primaryLogo} alt="Bahas" />
+              <div>
+                <h2 id="signout-title" className="text-xl font-semibold tracking-[-0.02em] text-neutral-900">
+                  Keluar dari Bahas?
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-neutral-500">
+                  Sesi akun {user.email} akan ditutup dari browser ini.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                className="btn btn-secondary"
+                disabled={busy === "signout"}
+                onClick={() => setSignOutOpen(false)}
+              >
+                Batal
+              </button>
+              <button
+                className="btn btn-danger"
+                disabled={busy === "signout"}
+                onClick={confirmSignOut}
+              >
+                {busy === "signout" ? "Keluar..." : "Keluar"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </main>
   )
 }

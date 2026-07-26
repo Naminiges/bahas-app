@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import type { User } from "@supabase/supabase-js"
 import Image from "next/image"
+import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import longLogo from "./long-logo.svg"
 import primaryLogo from "./primary-logo.svg"
@@ -79,6 +80,11 @@ type RewriteResponse = {
   risk: Risk
 }
 
+type SummaryResponse = {
+  message: string
+  catatan: string
+}
+
 const relations = ["orang tua", "pasangan", "saudara", "keluarga jauh"] as const
 const tabs: { id: Tab; label: string }[] = [
   { id: "prepare", label: "Siapkan" },
@@ -106,6 +112,17 @@ function formatDate(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value))
+}
+
+function estimateDramaForAdaptive(message: string, difficulty: Difficulty, turn: number) {
+  const lowered = message.toLowerCase()
+  const tenseWords = ["selalu", "kapan", "harus", "pelit", "bohong", "capek", "kesal", "marah"]
+  const calmWords = ["aku", "boleh", "bantu", "ngobrol", "paham", "bareng", "tenang"]
+  const tenseHits = tenseWords.filter((word) => lowered.includes(word)).length
+  const calmHits = calmWords.filter((word) => lowered.includes(word)).length
+  const base = difficulty === "emosian" ? 54 : 38
+  const estimated = base + tenseHits * 9 - calmHits * 5 + Math.min(turn * 3, 12)
+  return Math.min(100, Math.max(0, Math.round(estimated)))
 }
 
 export default function Home() {
@@ -210,6 +227,10 @@ function BahasApp({ user }: { user: User }) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [userMessage, setUserMessage] = useState("")
   const [feedback, setFeedback] = useState<Feedback | null>(null)
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [summaryResult, setSummaryResult] = useState<SummaryResponse | null>(null)
+  const [copyStatus, setCopyStatus] = useState("")
+  const [adaptiveMode, setAdaptiveMode] = useState(false)
   const [rewriteInput, setRewriteInput] = useState("Kamu tuh minjem uang terus, kapan balikin?")
   const [rewriteResult, setRewriteResult] = useState<{ rewritten: string; note: string } | null>(null)
   const [savedLines, setSavedLines] = useState<SavedLine[]>([])
@@ -262,6 +283,9 @@ function BahasApp({ user }: { user: User }) {
         setScenario(data.scenario)
         setMessages([])
         setFeedback(null)
+        setConversationId(null)
+        setSummaryResult(null)
+        setCopyStatus("")
         setSaveLineText(data.scenario.opening_script ?? "")
         setStatus("Naskah siap. Kamu bisa lanjut latihan dari skenario ini.")
       }
@@ -280,13 +304,26 @@ function BahasApp({ user }: { user: User }) {
     setRiskMessage("")
     setUserMessage("")
     try {
-      const data = await postJson<RoleplayResponse>("/api/roleplay", {
-        relation: scenario.relation,
-        difficulty,
-        situation: scenario.situation,
-        history: messages,
-        userMessage: nextUserMessage.content,
-      })
+      const turn = messages.filter((message) => message.role === "user").length + 1
+      const data = await postJson<RoleplayResponse>(
+        adaptiveMode ? "/api/roleplay-adaptive" : "/api/roleplay",
+        adaptiveMode
+          ? {
+              relation: scenario.relation,
+              situation: scenario.situation,
+              history: messages,
+              userMessage: nextUserMessage.content,
+              dramaSoFar: estimateDramaForAdaptive(nextUserMessage.content, difficulty, turn),
+              turn,
+            }
+          : {
+              relation: scenario.relation,
+              difficulty,
+              situation: scenario.situation,
+              history: messages,
+              userMessage: nextUserMessage.content,
+            },
+      )
       showRisk(data.risk)
       const nextMessages = data.reply
         ? [...messages, nextUserMessage, { role: "assistant" as const, content: data.reply }]
@@ -311,6 +348,9 @@ function BahasApp({ user }: { user: User }) {
         messages,
       })
       setFeedback(data.feedback)
+      setConversationId(data.conversation.id)
+      setSummaryResult(null)
+      setCopyStatus("")
       setSaveLineText(data.feedback.improvement)
       setStatus("Feedback tersimpan ke riwayat latihan.")
       await refreshHistory()
@@ -357,6 +397,40 @@ function BahasApp({ user }: { user: User }) {
     await refreshHistory()
   }
 
+  async function createSummaryMessage() {
+    if (!scenario || !feedback || messages.length === 0) return
+    setBusy("summary")
+    setStatus("")
+    setCopyStatus("")
+    try {
+      const data = await postJson<SummaryResponse>("/api/summary", {
+        conversationId,
+        relation: scenario.relation,
+        situation: scenario.situation,
+        messages,
+        feedback,
+      })
+      setSummaryResult(data)
+      setSaveLineText(data.message)
+      setStatus("Pesan siap kirim sudah dibuat.")
+      await refreshHistory()
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Gagal membuat pesan siap kirim")
+    } finally {
+      setBusy("")
+    }
+  }
+
+  async function copySummaryMessage() {
+    if (!summaryResult?.message) return
+    try {
+      await navigator.clipboard.writeText(summaryResult.message)
+      setCopyStatus("Pesan disalin.")
+    } catch {
+      setCopyStatus("Gagal menyalin otomatis. Salin manual dari teks di atas.")
+    }
+  }
+
   const latestScore = conversations.find((item) => typeof item.drama_score === "number")?.drama_score ?? null
 
   return (
@@ -372,7 +446,13 @@ function BahasApp({ user }: { user: User }) {
               </h1>
             </div>
           </div>
-          <div className="flex items-center gap-3 text-sm text-neutral-500">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-500">
+            <Link className="btn btn-ghost min-h-10 px-4" href="/demo">
+              Demo
+            </Link>
+            <Link className="btn btn-ghost min-h-10 px-4" href="/progress">
+              Kemajuan
+            </Link>
             <span className="max-w-[220px] truncate rounded-full bg-neutral-100 px-3 py-2">{user.email}</span>
             <button
               className="btn btn-secondary min-h-10 px-4"
@@ -504,16 +584,27 @@ function BahasApp({ user }: { user: User }) {
                     {scenario ? `${scenario.relation} - ${scenario.topic ?? "topik uang"}` : "Buat skenario dulu di tab Siapkan."}
                   </p>
                 </div>
-                <div className="tabs-shell">
-                  {(["kalem", "emosian"] as const).map((item) => (
-                    <button
-                      key={item}
-                      className={`tab-button min-h-9 px-4 ${difficulty === item ? "tab-button-active" : ""}`}
-                      onClick={() => setDifficulty(item)}
-                    >
-                      {item}
-                    </button>
-                  ))}
+                <div className="flex flex-col gap-3 sm:items-end">
+                  <div className="tabs-shell">
+                    {(["kalem", "emosian"] as const).map((item) => (
+                      <button
+                        key={item}
+                        className={`tab-button min-h-9 px-4 ${difficulty === item ? "tab-button-active" : ""}`}
+                        onClick={() => setDifficulty(item)}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-neutral-600">
+                    <input
+                      className="h-4 w-4 accent-primary-700"
+                      type="checkbox"
+                      checked={adaptiveMode}
+                      onChange={(event) => setAdaptiveMode(event.target.checked)}
+                    />
+                    Mode adaptif
+                  </label>
                 </div>
               </div>
 
@@ -574,12 +665,53 @@ function BahasApp({ user }: { user: User }) {
               </div>
 
               {feedback ? (
-                <div className="mt-6 grid gap-5 rounded-[24px] bg-neutral-50 p-5 shadow-[inset_0_0_0_1px_var(--color-neutral-100)] sm:grid-cols-[200px_minmax(0,1fr)]">
-                  <DramaMeter score={feedback.drama_score} />
-                  <div className="grid gap-3">
-                    <ListBlock title="Pemicu" items={feedback.triggers} />
-                    <ListBlock title="Peredam" items={feedback.deescalators} />
-                    <ResultBlock title="Saran utama" text={feedback.improvement} />
+                <div className="mt-6 space-y-5">
+                  <div className="grid gap-5 rounded-[24px] bg-neutral-50 p-5 shadow-[inset_0_0_0_1px_var(--color-neutral-100)] sm:grid-cols-[200px_minmax(0,1fr)]">
+                    <DramaMeter score={feedback.drama_score} />
+                    <div className="grid gap-3">
+                      <ListBlock title="Pemicu" items={feedback.triggers} />
+                      <ListBlock title="Peredam" items={feedback.deescalators} />
+                      <ResultBlock title="Saran utama" text={feedback.improvement} />
+                    </div>
+                  </div>
+
+                  <div className="rounded-[24px] bg-primary-50 p-5 shadow-[inset_0_0_0_1px_var(--color-primary-100)]">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold tracking-[-0.01em] text-primary-900">Pesan siap kirim</h3>
+                        <p className="text-sm leading-6 text-primary-800">
+                          Ringkas latihan dan feedback menjadi satu pesan yang bisa ditempel ke WhatsApp.
+                        </p>
+                      </div>
+                      <button
+                        className="btn btn-primary shrink-0"
+                        disabled={busy === "summary"}
+                        onClick={createSummaryMessage}
+                      >
+                        {busy === "summary" ? "Membuat..." : "Buatkan Pesan"}
+                      </button>
+                    </div>
+
+                    {summaryResult ? (
+                      <div className="mt-5 space-y-3">
+                        <p className="rounded-2xl bg-white p-4 text-sm leading-6 text-neutral-800 shadow-sm">
+                          {summaryResult.message}
+                        </p>
+                        <p className="text-sm leading-6 text-primary-800">{summaryResult.catatan}</p>
+                        <div className="flex flex-wrap gap-3">
+                          <button className="btn btn-secondary" onClick={copySummaryMessage}>
+                            Salin
+                          </button>
+                          <button
+                            className="btn btn-ghost"
+                            onClick={() => saveLine(summaryResult.message, "summary_message")}
+                          >
+                            Simpan ke Kalimat Andalan
+                          </button>
+                        </div>
+                        {copyStatus ? <p className="text-sm font-semibold text-primary-800">{copyStatus}</p> : null}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               ) : null}

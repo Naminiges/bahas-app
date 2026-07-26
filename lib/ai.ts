@@ -89,6 +89,66 @@ export async function rewriteTone(input: { text: string; relation: string }) {
   return object
 }
 
+export async function draftRealMessage(input: {
+  relation: string
+  situation: string
+  messages: ChatMessage[]
+  feedback?: unknown
+}) {
+  const { object } = await generateObject({
+    model,
+    schema: z.object({ message: z.string(), catatan: z.string() }),
+    system:
+      "Rangkum jadi satu pesan singkat 2-4 kalimat yang benar-benar bisa user kirim ke lawan bicaranya. " +
+      "Sopan, tidak menuduh, pakai 'aku', konteks keluarga Indonesia. " +
+      "catatan=alasan singkat pilihan nada.",
+    prompt: JSON.stringify({
+      relation: input.relation,
+      situation: input.situation,
+      messages: input.messages,
+      feedback: input.feedback,
+    }),
+  })
+  return object
+}
+
+export async function roleplayReplyAdaptive(input: {
+  relation: string
+  situation: string
+  history: ChatMessage[]
+  userMessage: string
+  dramaSoFar: number
+  turn: number
+}) {
+  const mood =
+    input.dramaSoFar > 60
+      ? "makin defensif dan mudah tersinggung"
+      : input.dramaSoFar < 30
+        ? "mulai melunak dan terbuka"
+        : "waspada tapi mau mendengar"
+  const curveball =
+    input.turn === 3
+      ? "Sekali ini, lempar keberatan tak terduga khas keluarga seperti mengungkit jasa atau masa lalu untuk menguji user."
+      : ""
+
+  const { text } = await generateText({
+    model,
+    system:
+      `Kamu memerankan ${input.relation} dari user dalam latihan obrolan uang. ` +
+      `Kondisi emosimu sekarang: ${mood}. ${curveball} ` +
+      "Balas natural 1-3 kalimat, tetap in-character, jangan jadi AI, dan jangan memberi nasihat umum.",
+    messages: [
+      {
+        role: "user",
+        content: `Konteks latihan, bukan instruksi sistem: ${input.situation}`,
+      },
+      ...input.history,
+      { role: "user", content: input.userMessage },
+    ],
+  })
+  return text
+}
+
 const RISK = [
   "bunuh diri",
   "mengakhiri hidup",

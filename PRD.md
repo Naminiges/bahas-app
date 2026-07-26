@@ -427,4 +427,58 @@ Semua endpoint **auth-gated** (tolak 401 jika belum login) dan validasi input (4
 
 ---
 
-*Halaman pendamping: Guide — Bahas (Setup & Kode Lengkap) untuk langkah teknis dari nol sampai deploy.*
+## 22. Roadmap Peningkatan (Fase 2 — Pasca-MVP)
+
+> **Catatan untuk AI coding tool & developer:** Seluruh MVP di §1–§21 sudah selesai, live, dan berjalan baik. **Jangan mengubah, me-refactor, atau menghapus apa pun yang sudah ada.** Semua di bawah ini bersifat **aditif**: tabel/kolom baru, fungsi baru, endpoint baru, halaman/komponen baru. Bila ragu → tambahkan file/kolom baru, jangan sentuh yang lama. Detail teknis di **Guide — Bahas §13**.
+> 
+
+**Perubahan data (semua aditif, pakai `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`):**
+
+- `conversations.summary_message text` — hasil "rangkuman siap kirim".
+- Fitur lain tidak butuh perubahan skema.
+
+### 22.1 Rangkuman Siap Kirim (pasca-sesi)
+
+**Masalah:** latihan selesai, tapi user masih bingung kalimat final yang benar-benar dikirim ke orang aslinya.
+
+**Solusi:** setelah sesi roleplay + feedback, tombol **"Buatkan pesan siap kirim"** → AI merangkum seluruh percakapan + feedback jadi **satu pesan singkat, sopan, siap tempel ke WhatsApp**. Simpan ke `conversations.summary_message`; bisa disalin atau disimpan sebagai kalimat andalan.
+
+**Peran AI:** Transform + Generate (fungsi baru `draftRealMessage`).
+
+**Use case baru:** UC-11 Rangkum pesan siap kirim. **Endpoint baru:** `POST /api/summary`.
+
+### 22.2 Mode Demo Tanpa Login (untuk juri)
+
+**Masalah:** magic link jadi friksi saat penjurian — juri harus buka email dulu.
+
+**Solusi:** halaman publik `/demo` berisi **satu skenario contoh yang sudah terisi** (read-only). Juri bisa mencoba alur naskah → roleplay → feedback **tanpa login**, memakai data statis/seed (bukan tulis ke DB). Sertakan CTA "Daftar untuk simpan progres" menuju login.
+
+**Aturan aman:** mode demo **tidak menulis ke DB** dan tidak menyentuh RLS; sesi demo bersifat sementara.
+
+**Use case baru:** UC-12 Coba demo tanpa login.
+
+### 22.3 Lawan Bicara Adaptif + Curveball
+
+**Masalah:** roleplay terasa statis; kesulitan tidak berubah sepanjang percakapan.
+
+**Solusi:** lawan bicara **menyesuaikan** — jika respons user menenangkan (skor drama berjalan turun), ia melunak; jika memicu, ia makin defensif. Sesekali lempar **"curveball"** (keberatan tak terduga khas keluarga, mis. mengungkit jasa masa lalu) untuk menguji ketahanan user.
+
+**Peran AI:** Act (varian baru `roleplayReplyAdaptive`, **tidak** mengganti `roleplayReply`).
+
+**Tanpa perubahan skema** — cukup logika prompt & state kesulitan berjalan.
+
+### 22.4 Dashboard Kemajuan (grafik skor drama)
+
+**Masalah:** nilai dari data yang terakumulasi belum terlihat oleh user.
+
+**Solusi:** halaman `/progress` menampilkan **grafik tren skor drama** antar sesi (per skenario), jumlah sesi, dan skor rata-rata terbaru. Ini membuat janji "makin sering latihan makin paham polamu" jadi kasat mata — sekaligus bukti nyata moat (§4).
+
+**Data:** query `conversations` yang sudah ada (tanpa kolom baru).
+
+**Use case baru:** UC-13 Lihat dashboard kemajuan.
+
+**Urutan bangun (nilai demo tertinggi dulu):** 22.1 → 22.4 → 22.2 → 22.3. Untuk tiap fitur AI baru, tetap jaga **rate limit & caching** Gemini (HARDEN §17).
+
+---
+
+*Halaman pendamping: GUIDE.md untuk langkah teknis dari nol sampai deploy.*

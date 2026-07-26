@@ -206,6 +206,9 @@ export default function Home() {
             >
               Kirim Link Login
             </button>
+            <Link className="btn btn-secondary w-full" href="/demo">
+              Coba Demo Tanpa Login
+            </Link>
             {loginStatus ? <p className="status-callout text-sm">{loginStatus}</p> : null}
           </div>
         </section>
@@ -239,6 +242,7 @@ function BahasApp({ user }: { user: User }) {
   const [status, setStatus] = useState("")
   const [riskMessage, setRiskMessage] = useState("")
   const [busy, setBusy] = useState("")
+  const [accountOpen, setAccountOpen] = useState(false)
 
   const refreshHistory = useCallback(async () => {
     const [lines, sessions] = await Promise.all([
@@ -431,6 +435,12 @@ function BahasApp({ user }: { user: User }) {
     }
   }
 
+  async function confirmSignOut() {
+    const confirmed = window.confirm("Yakin keluar dari Bahas?")
+    if (!confirmed) return
+    await supabase.auth.signOut()
+  }
+
   const latestScore = conversations.find((item) => typeof item.drama_score === "number")?.drama_score ?? null
 
   return (
@@ -446,20 +456,31 @@ function BahasApp({ user }: { user: User }) {
               </h1>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-500">
-            <Link className="btn btn-ghost min-h-10 px-4" href="/demo">
-              Demo
-            </Link>
-            <Link className="btn btn-ghost min-h-10 px-4" href="/progress">
-              Kemajuan
-            </Link>
-            <span className="max-w-[220px] truncate rounded-full bg-neutral-100 px-3 py-2">{user.email}</span>
+          <div className="relative flex flex-wrap items-center gap-3 text-sm text-neutral-500">
             <button
-              className="btn btn-secondary min-h-10 px-4"
-              onClick={() => supabase.auth.signOut()}
+              className="flex max-w-[260px] items-center gap-2 rounded-full bg-neutral-100 px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-200 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary-200"
+              onClick={() => setAccountOpen((current) => !current)}
             >
-              Keluar
+              <span className="max-w-[190px] truncate">{user.email}</span>
+              <span className="text-primary-700">{accountOpen ? "↑" : "↓"}</span>
             </button>
+            {accountOpen ? (
+              <div className="absolute right-0 top-12 z-30 w-64 rounded-2xl bg-white p-2 shadow-lg ring-1 ring-neutral-100">
+                <Link
+                  className="block rounded-xl px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+                  href="/progress"
+                  onClick={() => setAccountOpen(false)}
+                >
+                  Kemajuan
+                </Link>
+                <button
+                  className="block w-full rounded-xl px-4 py-3 text-left text-sm font-semibold text-danger hover:bg-[#FEF2F2]"
+                  onClick={confirmSignOut}
+                >
+                  Keluar
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       </header>

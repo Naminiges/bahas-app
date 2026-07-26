@@ -57,8 +57,6 @@ type ConversationSummary = {
   difficulty: Difficulty
   drama_score: number | null
   feedback: Feedback | null
-  messages: ChatMessage[]
-  summary_message: string | null
   created_at: string
 }
 
@@ -240,29 +238,32 @@ function BahasApp({ user }: { user: User }) {
   const [rewriteResult, setRewriteResult] = useState<{ rewritten: string; note: string } | null>(null)
   const [savedLines, setSavedLines] = useState<SavedLine[]>([])
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
+  const [savedLineCount, setSavedLineCount] = useState(0)
+  const [conversationCount, setConversationCount] = useState(0)
   const [saveLineText, setSaveLineText] = useState("")
   const [status, setStatus] = useState("")
   const [riskMessage, setRiskMessage] = useState("")
   const [busy, setBusy] = useState("")
   const [accountOpen, setAccountOpen] = useState(false)
   const [signOutOpen, setSignOutOpen] = useState(false)
-  const [selectedConversation, setSelectedConversation] = useState<ConversationSummary | null>(null)
 
   const refreshHistory = useCallback(async () => {
     const [lines, sessions] = await Promise.all([
       supabase
         .from("saved_lines")
-        .select("id,text,source,created_at")
+        .select("id,text,source,created_at", { count: "exact" })
         .order("created_at", { ascending: false })
-        .limit(5),
+        .limit(1),
       supabase
         .from("conversations")
-        .select("id,difficulty,drama_score,feedback,messages,summary_message,created_at")
+        .select("id,difficulty,drama_score,feedback,created_at", { count: "exact" })
         .order("created_at", { ascending: false })
-        .limit(20),
+        .limit(1),
     ])
     if (lines.data) setSavedLines(lines.data as SavedLine[])
+    setSavedLineCount(lines.count ?? lines.data?.length ?? 0)
     if (sessions.data) setConversations(sessions.data as ConversationSummary[])
+    setConversationCount(sessions.count ?? sessions.data?.length ?? 0)
   }, [supabase])
 
   useEffect(() => {
@@ -456,6 +457,8 @@ function BahasApp({ user }: { user: User }) {
   }
 
   const latestScore = conversations.find((item) => typeof item.drama_score === "number")?.drama_score ?? null
+  const latestSavedLine = savedLines[0] ?? null
+  const latestConversation = conversations[0] ?? null
 
   return (
     <main className="app-shell">
@@ -476,7 +479,7 @@ function BahasApp({ user }: { user: User }) {
               onClick={() => setAccountOpen((current) => !current)}
             >
               <span className="max-w-[190px] truncate">{user.email}</span>
-              <span className="text-primary-700">{accountOpen ? "↑" : "↓"}</span>
+              <span className="text-primary-700">{accountOpen ? "^" : "v"}</span>
             </button>
             {accountOpen ? (
               <div className="absolute right-0 top-12 z-30 w-64 rounded-2xl bg-white p-2 shadow-lg ring-1 ring-neutral-100">
@@ -486,6 +489,20 @@ function BahasApp({ user }: { user: User }) {
                   onClick={() => setAccountOpen(false)}
                 >
                   Kemajuan
+                </Link>
+                <Link
+                  className="block rounded-xl px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+                  href="/saved-lines"
+                  onClick={() => setAccountOpen(false)}
+                >
+                  Kalimat tersimpan
+                </Link>
+                <Link
+                  className="block rounded-xl px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+                  href="/history"
+                  onClick={() => setAccountOpen(false)}
+                >
+                  Riwayat latihan
                 </Link>
                 <button
                   className="block w-full rounded-xl px-4 py-3 text-left text-sm font-semibold text-danger hover:bg-[#FEF2F2]"
@@ -815,14 +832,19 @@ function BahasApp({ user }: { user: User }) {
           <section className="card">
             <h2 className="text-xl font-semibold tracking-[-0.02em] text-neutral-900">Kemajuan</h2>
             <div className="mt-4 grid grid-cols-3 gap-3">
-              <Metric label="Sesi" value={conversations.length.toString()} />
+              <Metric label="Sesi" value={conversationCount.toString()} />
               <Metric label="Skor" value={latestScore === null ? "-" : latestScore.toString()} />
-              <Metric label="Kalimat" value={savedLines.length.toString()} />
+              <Metric label="Kalimat" value={savedLineCount.toString()} />
             </div>
           </section>
 
           <section className="card">
-            <h2 className="text-xl font-semibold tracking-[-0.02em] text-neutral-900">Kalimat Andalan</h2>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold tracking-[-0.02em] text-neutral-900">Kalimat Andalan</h2>
+                <p className="mt-1 text-sm leading-6 text-neutral-500">Halaman utama hanya menampilkan kalimat terbaru.</p>
+              </div>
+            </div>
             <div className="mt-4 space-y-3">
               <textarea
                 className="input min-h-24 resize-y text-sm"
@@ -837,13 +859,22 @@ function BahasApp({ user }: { user: User }) {
               >
                 Simpan
               </button>
-              {savedLines.length === 0 ? <p className="text-sm leading-6 text-neutral-500">Belum ada kalimat tersimpan.</p> : null}
-              {savedLines.map((line) => (
-                <article key={line.id} className="rounded-2xl bg-neutral-50 p-4 shadow-[inset_0_0_0_1px_var(--color-neutral-100)]">
-                  <p className="text-sm leading-6 text-neutral-700">{line.text}</p>
-                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-neutral-400">{line.source ?? "manual"}</p>
+              {latestSavedLine ? (
+                <article className="rounded-2xl bg-neutral-50 p-4 shadow-[inset_0_0_0_1px_var(--color-neutral-100)]">
+                  <p className="text-sm leading-6 text-neutral-700">{latestSavedLine.text}</p>
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                      {latestSavedLine.source ?? "manual"}
+                    </p>
+                    <p className="text-xs font-medium text-neutral-400">{formatDate(latestSavedLine.created_at)}</p>
+                  </div>
                 </article>
-              ))}
+              ) : (
+                <p className="text-sm leading-6 text-neutral-500">Belum ada kalimat tersimpan.</p>
+              )}
+              <Link className="btn btn-ghost w-full" href="/saved-lines">
+                Lihat Semua Kalimat
+              </Link>
             </div>
           </section>
 
@@ -851,30 +882,29 @@ function BahasApp({ user }: { user: User }) {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-xl font-semibold tracking-[-0.02em] text-neutral-900">Riwayat Latihan</h2>
-                <p className="mt-1 text-sm leading-6 text-neutral-500">Buka sesi lama untuk melihat chat dan feedback.</p>
+                <p className="mt-1 text-sm leading-6 text-neutral-500">Buka halaman riwayat untuk melihat chat, feedback, dan pesan siap kirim.</p>
               </div>
             </div>
             <div className="mt-4 space-y-3">
-              {conversations.length === 0 ? <p className="text-sm leading-6 text-neutral-500">Belum ada sesi selesai.</p> : null}
-              {conversations.map((conversation) => (
-                <button
-                  key={conversation.id}
-                  className="block w-full rounded-2xl bg-neutral-50 p-4 text-left shadow-[inset_0_0_0_1px_var(--color-neutral-100)] transition hover:bg-white hover:shadow-md focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-primary-200"
-                  onClick={() => setSelectedConversation(conversation)}
-                >
+              {latestConversation ? (
+                <article className="rounded-2xl bg-neutral-50 p-4 shadow-[inset_0_0_0_1px_var(--color-neutral-100)]">
                   <div className="flex items-center justify-between gap-3">
-                    <span className={`chip ${conversation.difficulty === "kalem" ? "chip-kalem" : "chip-emosian"}`}>
-                      {conversation.difficulty}
+                    <span className={`chip ${latestConversation.difficulty === "kalem" ? "chip-kalem" : "chip-emosian"}`}>
+                      {latestConversation.difficulty}
                     </span>
-                    <p className="font-mono text-sm font-semibold text-primary-700">{conversation.drama_score ?? "-"}/100</p>
+                    <p className="font-mono text-sm font-semibold text-primary-700">{latestConversation.drama_score ?? "-"}/100</p>
                   </div>
-                  <p className="mt-2 text-xs font-medium text-neutral-400">{formatDate(conversation.created_at)}</p>
-                  {conversation.feedback?.improvement ? (
-                    <p className="mt-2 text-sm leading-6 text-neutral-500">{conversation.feedback.improvement}</p>
+                  <p className="mt-2 text-xs font-medium text-neutral-400">{formatDate(latestConversation.created_at)}</p>
+                  {latestConversation.feedback?.improvement ? (
+                    <p className="mt-2 text-sm leading-6 text-neutral-500">{latestConversation.feedback.improvement}</p>
                   ) : null}
-                  <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-primary-700">Lihat detail sesi</p>
-                </button>
-              ))}
+                </article>
+              ) : (
+                <p className="text-sm leading-6 text-neutral-500">Belum ada sesi selesai.</p>
+              )}
+              <Link className="btn btn-ghost w-full" href="/history">
+                Lihat Semua Riwayat
+              </Link>
             </div>
           </section>
         </aside>
@@ -924,92 +954,6 @@ function BahasApp({ user }: { user: User }) {
         </div>
       ) : null}
 
-      {selectedConversation ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/45 px-4 py-6 backdrop-blur-sm"
-          role="presentation"
-          onClick={() => setSelectedConversation(null)}
-        >
-          <section
-            aria-labelledby="history-title"
-            aria-modal="true"
-            className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-[28px] bg-white p-6 shadow-2xl ring-1 ring-neutral-100"
-            role="dialog"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <div className="mb-3 flex flex-wrap gap-2">
-                  <span className={`chip ${selectedConversation.difficulty === "kalem" ? "chip-kalem" : "chip-emosian"}`}>
-                    {selectedConversation.difficulty}
-                  </span>
-                  <span className="chip chip-relation">{formatDate(selectedConversation.created_at)}</span>
-                </div>
-                <h2 id="history-title" className="text-2xl font-semibold tracking-[-0.02em] text-neutral-900">
-                  Detail Riwayat Latihan
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-neutral-500">
-                  Chat, feedback, dan pesan siap kirim dari sesi yang sudah diakhiri.
-                </p>
-              </div>
-              <button className="btn btn-secondary shrink-0" onClick={() => setSelectedConversation(null)}>
-                Tutup
-              </button>
-            </div>
-
-            <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_220px]">
-              <section>
-                <h3 className="text-sm font-semibold text-neutral-800">Chat roleplay</h3>
-                <div className="mt-3 flex max-h-96 flex-col gap-3 overflow-y-auto rounded-[24px] bg-neutral-50 p-4 shadow-[inset_0_0_0_1px_var(--color-neutral-100)]">
-                  {selectedConversation.messages.length === 0 ? (
-                    <p className="text-sm leading-6 text-neutral-500">Tidak ada chat tersimpan.</p>
-                  ) : null}
-                  {selectedConversation.messages.map((message, index) => (
-                    <div
-                      key={`history-${selectedConversation.id}-${index}`}
-                      className={`bubble ${message.role === "user" ? "bubble-me" : "bubble-them"}`}
-                    >
-                      {message.content}
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <section>
-                {typeof selectedConversation.drama_score === "number" ? (
-                  <DramaMeter score={selectedConversation.drama_score} />
-                ) : (
-                  <div className="rounded-2xl bg-neutral-50 p-5 shadow-[inset_0_0_0_1px_var(--color-neutral-100)]">
-                    <p className="text-sm font-semibold text-neutral-500">Skor drama</p>
-                    <p className="mt-2 font-mono text-3xl font-semibold text-neutral-900">-</p>
-                  </div>
-                )}
-              </section>
-            </div>
-
-            {selectedConversation.feedback ? (
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <ListBlock title="Pemicu" items={selectedConversation.feedback.triggers} />
-                <ListBlock title="Peredam" items={selectedConversation.feedback.deescalators} />
-                <div className="sm:col-span-2">
-                  <ResultBlock title="Saran utama" text={selectedConversation.feedback.improvement} />
-                </div>
-              </div>
-            ) : null}
-
-            <div className="mt-6">
-              <h3 className="text-sm font-semibold text-neutral-800">Pesan siap kirim</h3>
-              {selectedConversation.summary_message ? (
-                <p className="result-panel mt-3 text-sm leading-6">{selectedConversation.summary_message}</p>
-              ) : (
-                <p className="mt-3 rounded-2xl bg-neutral-50 p-4 text-sm leading-6 text-neutral-500 shadow-[inset_0_0_0_1px_var(--color-neutral-100)]">
-                  Belum ada pesan siap kirim untuk sesi ini.
-                </p>
-              )}
-            </div>
-          </section>
-        </div>
-      ) : null}
     </main>
   )
 }

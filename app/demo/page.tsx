@@ -46,7 +46,7 @@ export default function DemoPage() {
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <Image className="logo-icon" src={primaryLogo} alt="Bahas" priority />
+            <Image className="logo-icon bg-transparent" src={primaryLogo} alt="Bahas" priority />
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-primary-700">Mode Demo</p>
               <h1 className="text-3xl font-semibold tracking-[-0.03em] text-neutral-900">Coba Bahas tanpa login</h1>

@@ -482,3 +482,62 @@ Semua endpoint **auth-gated** (tolak 401 jika belum login) dan validasi input (4
 ---
 
 *Halaman pendamping: GUIDE.md untuk langkah teknis dari nol sampai deploy.*
+
+---
+
+## 23. Status Produk Terkini
+
+Bagian ini adalah pembaruan setelah implementasi Fase 2. Jika ada perbedaan antara roadmap lama dan bagian ini, bagian ini mewakili kondisi produk terbaru.
+
+### 23.1 Route Produk
+
+- `/`: workspace utama Bahas setelah login.
+- `/demo`: mode demo publik tanpa login dan tanpa penulisan database.
+- `/saved-lines`: daftar lengkap kalimat andalan yang disimpan user.
+- `/history`: daftar lengkap sesi roleplay yang sudah diakhiri, termasuk chat, feedback, skor drama, dan pesan siap kirim.
+- `/progress`: dashboard kemajuan dan tren skor drama.
+- `/auth/confirm`: callback magic link Supabase.
+
+### 23.2 UX Halaman Utama
+
+Halaman utama dibuat tetap ringkas:
+
+- Sidebar **Kalimat Andalan** hanya menampilkan satu kalimat terbaru.
+- Semua kalimat lengkap dipindahkan ke `/saved-lines`.
+- Sidebar **Riwayat Latihan** hanya menampilkan preview sesi terbaru.
+- Semua sesi lengkap dipindahkan ke `/history`.
+- Dropdown akun menjadi pusat navigasi ke `Kemajuan`, `Kalimat tersimpan`, `Riwayat latihan`, dan `Keluar`.
+- Logout memakai modal konfirmasi di tengah layar, bukan alert browser.
+
+### 23.3 Fitur Data Personal
+
+Bahas sekarang menyimpan dan menampilkan kembali data personal berikut:
+
+- `scenarios`: skenario yang dibuat user.
+- `conversations.messages`: chat roleplay setelah user klik **Akhiri dan Minta Feedback**.
+- `conversations.feedback`: hasil evaluasi sesi.
+- `conversations.drama_score`: skor drama sesi.
+- `conversations.summary_message`: pesan siap kirim.
+- `saved_lines`: kalimat andalan.
+
+### 23.4 Acceptance Criteria Tambahan
+
+- User dapat melihat semua kalimat tersimpan di `/saved-lines`.
+- User dapat menyalin kalimat tersimpan dari `/saved-lines`.
+- User dapat melihat semua sesi roleplay yang sudah selesai di `/history`.
+- User dapat membuka detail sesi lama dan melihat chat, feedback, skor drama, serta pesan siap kirim.
+- Halaman utama tidak memanjang berlebihan walaupun data user terus bertambah.
+- Dropdown akun menyediakan akses cepat ke seluruh halaman personal.
+- Logout harus meminta konfirmasi lewat modal desain aplikasi.
+
+### 23.5 Status Implementasi
+
+- MVP awal: selesai.
+- Rangkuman siap kirim: selesai.
+- Mode demo tanpa login: selesai.
+- Roleplay adaptif dan curveball: selesai.
+- Dashboard kemajuan: selesai.
+- Kalimat tersimpan lengkap: selesai.
+- Riwayat latihan lengkap: selesai.
+- Modal logout: selesai.
+- Dokumentasi pendukung: `README.md`, `EXPLAIN.md`, dan `GUIDE.md`.

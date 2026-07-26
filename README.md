@@ -4,11 +4,12 @@
 
 Tagline: **Latihan ngobrol uang, sebelum ngobrol beneran.**
 
-Banyak masalah finansial keluarga tidak berhenti di angka, tetapi di cara membicarakannya: utang keluarga, pasangan belanja tanpa kabar, warisan, adik sering pinjam uang, budaya gengsi, atau mindset "rezeki diganti". Bahas membantu pengguna menyiapkan naskah pembuka, berlatih roleplay dengan AI, mendapat skor drama, membuat pesan siap kirim, lalu menyimpan kalimat andalan yang aman dipakai.
+Banyak masalah finansial keluarga tidak berhenti di angka, tetapi di cara membicarakannya: utang keluarga, pasangan belanja tanpa kabar, warisan, adik sering pinjam uang, budaya gengsi, atau mindset "rezeki diganti". Bahas membantu pengguna menyiapkan naskah pembuka, berlatih roleplay dengan AI, mendapat skor drama, membuat pesan siap kirim, menyimpan kalimat andalan, dan memantau progres latihan.
 
 ## Fitur Utama
 
 - Login privat dengan Supabase magic link.
+- Mode demo publik di `/demo` tanpa login dan tanpa menulis ke database.
 - Form skenario: relasi, situasi, dan ketakutan pengguna.
 - AI membuat topik, catatan budaya, naskah pembuka, dan prediksi reaksi.
 - Roleplay chat dengan AI yang memerankan lawan bicara.
@@ -16,10 +17,13 @@ Banyak masalah finansial keluarga tidak berhenti di angka, tetapi di cara membic
 - Mode roleplay adaptif yang menyesuaikan respons AI berdasarkan perkiraan eskalasi.
 - Feedback sesi: skor drama 0-100, pemicu, peredam, dan satu saran utama.
 - Pesan siap kirim setelah feedback, lengkap dengan tombol salin dan simpan.
-- Penerjemah nada: ubah pesan emosional menjadi versi sopan dan tidak menuduh.
+- Penerjemah nada untuk mengubah pesan emosional menjadi versi sopan.
 - Simpan kalimat andalan per user.
-- Riwayat latihan dan dashboard kemajuan di `/progress`.
-- Mode demo publik di `/demo` tanpa login dan tanpa menulis ke database.
+- Halaman `/saved-lines` untuk melihat semua kalimat tersimpan.
+- Halaman `/history` untuk melihat ulang chat roleplay, feedback, skor, dan pesan siap kirim dari sesi lama.
+- Dashboard `/progress` untuk melihat tren skor drama.
+- Dropdown akun berisi navigasi ke Kemajuan, Kalimat tersimpan, Riwayat latihan, dan Keluar.
+- Modal konfirmasi logout yang menggantikan alert browser.
 - Deteksi kata risiko dan rujukan bantuan.
 - Rate limit sederhana untuk endpoint AI.
 
@@ -33,8 +37,8 @@ Bahas bukan kotak chat kosong. Nilainya ada pada alur produk yang terpandu:
 | Latihan | Sulit konsisten memerankan lawan bicara | Roleplay in-character dengan kesulitan dan mode adaptif |
 | Umpan balik | Tidak ada ukuran progres | Skor drama, feedback konkret, dan dashboard kemajuan |
 | Aksi nyata | User harus merangkum sendiri | Pesan siap kirim setelah latihan |
-| Konteks | Cenderung generik | Sensitif pada konteks keluarga Indonesia |
-| Privasi | Riwayat tidak terstruktur | Data privat per user dengan RLS |
+| Retensi data | Riwayat tidak terstruktur | Riwayat sesi, kalimat tersimpan, dan progres privat |
+| Privasi | Tergantung platform | Data privat per user dengan RLS |
 
 ## Tech Stack
 
@@ -61,7 +65,9 @@ app/
     rewrite/route.ts            # Penerjemah nada
   auth/confirm/route.ts         # Callback magic link Supabase SSR
   demo/page.tsx                 # Demo publik tanpa login dan tanpa DB write
+  history/page.tsx              # Semua riwayat latihan dan detail sesi
   progress/page.tsx             # Dashboard kemajuan user login
+  saved-lines/page.tsx          # Semua kalimat tersimpan
   page.tsx                      # UI utama Bahas
   globals.css                   # Design tokens dan komponen visual
   primary-logo.svg              # Logo ikon
@@ -80,6 +86,8 @@ proxy.ts                        # Refresh session Supabase untuk Next.js 16
 
 - `/`: halaman utama. Belum login menampilkan form magic link dan tombol demo; setelah login menampilkan workspace Bahas.
 - `/demo`: simulasi publik untuk mencoba alur produk tanpa login.
+- `/saved-lines`: semua kalimat andalan yang pernah disimpan user.
+- `/history`: semua sesi roleplay yang sudah diakhiri, lengkap dengan chat, feedback, skor, dan pesan siap kirim.
 - `/progress`: dashboard skor drama dari sesi yang tersimpan milik user.
 - `/auth/confirm`: callback Supabase magic link.
 
@@ -94,7 +102,8 @@ proxy.ts                        # Refresh session Supabase untuk Next.js 16
 7. User mengakhiri sesi dan mendapat skor drama.
 8. User membuat pesan siap kirim dari hasil latihan.
 9. User dapat menyalin atau menyimpan pesan ke kalimat andalan.
-10. Riwayat latihan tersimpan privat per user dan dapat dilihat di dashboard kemajuan.
+10. Halaman utama hanya menampilkan preview terbaru agar tetap ringkas.
+11. User bisa membuka `/saved-lines`, `/history`, dan `/progress` dari dropdown akun untuk melihat data lengkap.
 
 ## Environment Variables
 
@@ -274,7 +283,7 @@ GOOGLE_GENERATIVE_AI_API_KEY
 4. Deploy.
 5. Tambahkan domain Vercel ke Supabase Auth URL Configuration.
 6. Pastikan SQL tabel, kolom `summary_message`, dan RLS sudah ada di Supabase.
-7. Coba full flow: login magic link, buat skenario, roleplay, feedback, pesan siap kirim, simpan kalimat, dan dashboard kemajuan.
+7. Coba full flow: login magic link, buat skenario, roleplay, feedback, pesan siap kirim, simpan kalimat, buka `/saved-lines`, buka `/history`, dan buka `/progress`.
 
 ## Troubleshooting
 
@@ -316,7 +325,7 @@ Pastikan:
 
 ### Log development menampilkan request Vite 404
 
-Jika di terminal Next.js muncul 404 seperti `/@vite/client`, `/src/main.jsx`, atau `/dev-sw.js`, biasanya itu sisa cache service worker, tab lama, atau extension browser dari project Vite/PWA sebelumnya. Untuk Bahas yang memakai Next.js, cek halaman utama di `/`, `/demo`, dan `/progress`.
+Jika di terminal Next.js muncul 404 seperti `/@vite/client`, `/src/main.jsx`, atau `/dev-sw.js`, biasanya itu sisa cache service worker, tab lama, atau extension browser dari project Vite/PWA sebelumnya. Untuk Bahas yang memakai Next.js, cek halaman utama di `/`, `/demo`, `/saved-lines`, `/history`, dan `/progress`.
 
 ## Skenario Demo 2 Menit
 
@@ -328,8 +337,10 @@ Jika di terminal Next.js muncul 404 seperti `/@vite/client`, `/src/main.jsx`, at
 6. Masuk roleplay dengan mode `emosian` atau aktifkan mode adaptif.
 7. Akhiri sesi dan tampilkan skor drama.
 8. Buat pesan siap kirim, salin, atau simpan sebagai kalimat andalan.
-9. Buka `/progress` untuk menunjukkan tren skor.
-10. Tutup dengan pesan: data privat, progres tersimpan, dan demo bisa dicoba tanpa akun.
+9. Buka `/saved-lines` untuk menunjukkan kalimat tersimpan.
+10. Buka `/history` untuk menunjukkan chat dan feedback sesi lama.
+11. Buka `/progress` untuk menunjukkan tren skor.
+12. Tutup dengan pesan: data privat, progres tersimpan, dan demo bisa dicoba tanpa akun.
 
 ## Status Implementasi
 
@@ -340,8 +351,11 @@ Jika di terminal Next.js muncul 404 seperti `/@vite/client`, `/src/main.jsx`, at
 - Supabase Auth SSR callback: siap.
 - Mode demo publik: siap.
 - Dashboard kemajuan: siap.
+- Halaman kalimat tersimpan: siap.
+- Halaman riwayat latihan lengkap: siap.
 - Pesan siap kirim: siap.
 - Roleplay adaptif: siap.
+- Modal logout profesional: siap.
 - RLS dan tabel: perlu dijalankan di Supabase project masing-masing.
 - Gemini: perlu API key valid.
 - Deploy publik: via Vercel.

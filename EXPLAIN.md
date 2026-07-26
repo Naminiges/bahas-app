@@ -70,11 +70,15 @@ Bahas/
         page.tsx
       favicon.ico
       globals.css
+      history/
+        page.tsx
       layout.tsx
       long-logo.svg
       page.tsx
       primary-logo.svg
       progress/
+        page.tsx
+      saved-lines/
         page.tsx
     lib/
       ai.test.ts
@@ -352,7 +356,7 @@ Mengambil komponen `Image` dari Next.js untuk menampilkan logo SVG dengan optima
 import Link from "next/link"
 ```
 
-Mengambil komponen `Link` dari Next.js untuk navigasi internal, misalnya dari halaman login ke `/demo`, dari dropdown akun ke `/progress`, dan dari halaman progress kembali ke `/`.
+Mengambil komponen `Link` dari Next.js untuk navigasi internal, misalnya dari halaman login ke `/demo`, dari dropdown akun ke `/progress`, `/saved-lines`, dan `/history`, serta dari halaman pendukung kembali ke `/`.
 
 ```tsx
 import { createClient } from "@/lib/supabase/client"
@@ -764,9 +768,16 @@ State untuk fitur Terjemah Nada.
 ```ts
 const [savedLines, setSavedLines] = useState<SavedLine[]>([])
 const [conversations, setConversations] = useState<ConversationSummary[]>([])
+const [savedLineCount, setSavedLineCount] = useState(0)
+const [conversationCount, setConversationCount] = useState(0)
 ```
 
-State untuk data sidebar: kalimat andalan dan riwayat latihan.
+State untuk data sidebar:
+
+- `savedLines`: preview kalimat terbaru.
+- `conversations`: preview sesi terbaru.
+- `savedLineCount`: total semua kalimat tersimpan.
+- `conversationCount`: total semua sesi latihan selesai.
 
 ```ts
 const [saveLineText, setSaveLineText] = useState("")
@@ -774,6 +785,7 @@ const [status, setStatus] = useState("")
 const [riskMessage, setRiskMessage] = useState("")
 const [busy, setBusy] = useState("")
 const [accountOpen, setAccountOpen] = useState(false)
+const [signOutOpen, setSignOutOpen] = useState(false)
 ```
 
 State tambahan:
@@ -783,6 +795,7 @@ State tambahan:
 - `riskMessage`: pesan rujukan bantuan.
 - `busy`: nama proses yang sedang berjalan, misalnya `scenario`, `roleplay`, `feedback`, `summary`, `rewrite`, atau `save`.
 - `accountOpen`: membuka atau menutup dropdown akun di header.
+- `signOutOpen`: membuka atau menutup modal konfirmasi logout.
 
 #### `refreshHistory`
 
@@ -799,22 +812,22 @@ Fungsi ini mengambil data sidebar secara paralel:
 ```ts
 supabase
   .from("saved_lines")
-  .select("id,text,source,created_at")
+  .select("id,text,source,created_at", { count: "exact" })
   .order("created_at", { ascending: false })
-  .limit(5),
+  .limit(1),
 ```
 
-Mengambil 5 kalimat andalan terbaru.
+Mengambil satu kalimat andalan terbaru untuk preview halaman utama, sekaligus meminta total count dari Supabase.
 
 ```ts
 supabase
   .from("conversations")
-  .select("id,difficulty,drama_score,feedback,created_at")
+  .select("id,difficulty,drama_score,feedback,created_at", { count: "exact" })
   .order("created_at", { ascending: false })
-  .limit(5),
+  .limit(1),
 ```
 
-Mengambil 5 sesi latihan terbaru.
+Mengambil satu sesi latihan terbaru untuk preview halaman utama, sekaligus meminta total count dari Supabase.
 
 ```ts
 if (lines.data) setSavedLines(lines.data as SavedLine[])
@@ -1079,12 +1092,12 @@ Fungsi ini memakai Clipboard API browser untuk menyalin pesan siap kirim. Jika b
 #### `confirmSignOut`
 
 ```ts
-const confirmed = window.confirm("Yakin keluar dari Bahas?")
-if (!confirmed) return
-await supabase.auth.signOut()
+setBusy("signout")
+setStatus("")
+const { error } = await supabase.auth.signOut()
 ```
 
-Logout tidak langsung dijalankan. User harus mengonfirmasi dulu agar tidak keluar tanpa sengaja.
+Fungsi ini hanya dipanggil setelah user menekan tombol `Keluar` di modal konfirmasi. Modal dibuka oleh `requestSignOut()`, bukan oleh `window.confirm`, sehingga pengalaman logout tetap konsisten dengan desain aplikasi.
 
 #### JSX Aplikasi
 
@@ -1169,8 +1182,13 @@ Isi tab:
 Sidebar punya tiga card:
 
 1. `Kemajuan`: jumlah sesi, skor terbaru, jumlah kalimat.
-2. `Kalimat Andalan`: textarea manual, tombol simpan, daftar kalimat.
-3. `Riwayat Latihan`: daftar sesi terbaru dengan difficulty, skor, tanggal, dan saran.
+2. `Kalimat Andalan`: textarea manual, tombol simpan, dan satu kalimat tersimpan terbaru agar halaman utama tidak terlalu panjang.
+3. `Riwayat Latihan`: preview sesi terbaru dan link menuju halaman riwayat lengkap.
+
+Data lengkap dipindahkan ke halaman khusus:
+
+- `/saved-lines`: semua kalimat tersimpan.
+- `/history`: semua sesi latihan, chat roleplay, feedback, skor drama, dan pesan siap kirim.
 
 #### Komponen Kecil
 
@@ -1471,6 +1489,64 @@ Menghitung angka ringkasan:
 - `latest`: skor terbaru.
 - `average`: rata-rata skor.
 - `best`: skor terbaik, yaitu skor paling rendah karena semakin rendah semakin adem.
+
+### `app/saved-lines/page.tsx`
+
+Halaman ini berada di route `/saved-lines`.
+
+Tujuannya menampilkan semua kalimat andalan yang pernah disimpan user. Halaman utama hanya menampilkan satu kalimat terbaru agar sidebar tidak terus memanjang, sedangkan halaman ini menjadi arsip lengkap.
+
+Bagian penting:
+
+```ts
+type SavedLine = {
+  id: string
+  text: string
+  source: string | null
+  created_at: string
+}
+```
+
+Tipe ini mengikuti tabel `saved_lines`.
+
+```ts
+supabase
+  .from("saved_lines")
+  .select("id,text,source,created_at")
+  .order("created_at", { ascending: false })
+```
+
+Query mengambil semua kalimat milik user, diurutkan dari yang terbaru. RLS menjaga agar user hanya melihat miliknya.
+
+```ts
+await navigator.clipboard.writeText(text)
+```
+
+Setiap kartu punya tombol `Salin` agar kalimat bisa langsung dipakai ulang.
+
+### `app/history/page.tsx`
+
+Halaman ini berada di route `/history`.
+
+Tujuannya menampilkan semua sesi roleplay yang sudah diakhiri. Di halaman utama hanya ada preview sesi terbaru, sedangkan halaman ini memuat daftar lengkap dan modal detail.
+
+Data yang diambil:
+
+```ts
+supabase
+  .from("conversations")
+  .select("id,difficulty,drama_score,feedback,messages,summary_message,created_at")
+  .order("created_at", { ascending: false })
+```
+
+Kolom penting:
+
+- `messages`: chat roleplay user dan AI.
+- `feedback`: trigger, de-escalator, dan saran utama.
+- `drama_score`: skor drama.
+- `summary_message`: pesan siap kirim jika user sudah membuatnya.
+
+Saat salah satu kartu sesi diklik, komponen `HistoryDetail` tampil sebagai modal. Modal ini menampilkan chat bubble lengkap, meter skor drama, daftar pemicu, daftar peredam, saran utama, dan pesan siap kirim.
 
 ## 4. Folder `app/api/`
 
@@ -2735,7 +2811,27 @@ Mode ini berguna untuk juri, reviewer, atau calon user yang ingin melihat value 
 6. Frontend menghitung skor terbaru, rata-rata, skor terbaik, dan path sparkline.
 7. Grafik menampilkan tren skor drama. Semakin rendah skor, semakin adem percakapan.
 
-## 18. Error Handling
+## 18. Alur Kalimat Tersimpan
+
+1. User menyimpan kalimat dari naskah pembuka, rewrite, pesan siap kirim, atau input manual.
+2. Data masuk ke tabel `saved_lines`.
+3. Halaman utama mengambil satu kalimat terbaru sebagai preview.
+4. User membuka `/saved-lines` dari dropdown akun atau tombol `Lihat Semua Kalimat`.
+5. Halaman `/saved-lines` membaca semua kalimat milik user.
+6. User bisa menyalin kalimat dari kartu yang tersedia.
+
+## 19. Alur Riwayat Latihan Lengkap
+
+1. User menyelesaikan roleplay dengan klik `Akhiri dan Minta Feedback`.
+2. API menyimpan `messages`, `feedback`, `drama_score`, dan data sesi ke `conversations`.
+3. Jika user membuat pesan siap kirim, API menyimpan teksnya ke `summary_message`.
+4. Halaman utama hanya menampilkan preview sesi terbaru.
+5. User membuka `/history` dari dropdown akun atau tombol `Lihat Semua Riwayat`.
+6. Halaman `/history` membaca semua sesi milik user.
+7. User klik satu sesi untuk membuka modal detail.
+8. Modal menampilkan chat roleplay, skor drama, feedback, dan pesan siap kirim.
+
+## 20. Error Handling
 
 ### Error login rate limit
 
@@ -2753,7 +2849,7 @@ Anda terkena limit email. Tunggu beberapa menit sampai 1 jam, lalu coba lagi.
 
 Jika `checkRisk` mendeteksi kata risiko, API mengembalikan object risk dan tidak memanggil AI. UI menampilkan callout bantuan.
 
-## 19. Keamanan yang Sudah Ada
+## 21. Keamanan yang Sudah Ada
 
 1. API auth-gated.
    Semua endpoint AI mengecek `supabase.auth.getUser()`.
@@ -2779,7 +2875,10 @@ Jika `checkRisk` mendeteksi kata risiko, API mengembalikan object risk dan tidak
 8. Demo tidak menyentuh data.
    `/demo` hanya memakai state lokal dan data statis, sehingga aman untuk dicoba tanpa akun.
 
-## 20. Hal yang Perlu Diingat Sebagai Developer Baru
+9. Halaman data lengkap tetap memakai RLS.
+   `/saved-lines`, `/history`, dan `/progress` membaca Supabase dari browser, tetapi data tetap dibatasi oleh policy `auth.uid() = user_id`.
+
+## 22. Hal yang Perlu Diingat Sebagai Developer Baru
 
 - Jangan panggil Gemini langsung dari frontend.
 - Jangan simpan API key di client.
@@ -2790,7 +2889,7 @@ Jika `checkRisk` mendeteksi kata risiko, API mengembalikan object risk dan tidak
 - Jika magic link error, cek URL Configuration dan template email Supabase.
 - Jika build gagal karena font Google, jangan pakai `next/font/google` tanpa memastikan environment bisa fetch font saat build.
 
-## 21. Perintah Penting
+## 23. Perintah Penting
 
 Jalankan development server:
 
@@ -2822,7 +2921,7 @@ Build:
 npm run build
 ```
 
-## 22. Cara Membaca Proyek Ini dari Nol
+## 24. Cara Membaca Proyek Ini dari Nol
 
 Urutan belajar yang disarankan:
 
@@ -2835,8 +2934,8 @@ Urutan belajar yang disarankan:
 7. Baca `proxy.ts` untuk session refresh.
 8. Baca `app/globals.css` untuk memahami desain.
 9. Jalankan `npm exec vitest run` untuk melihat test.
-10. Jalankan app dan coba flow login, scenario, roleplay, feedback, pesan siap kirim, rewrite, save line, demo, dan progress.
+10. Jalankan app dan coba flow login, scenario, roleplay, feedback, pesan siap kirim, rewrite, save line, demo, saved-lines, history, dan progress.
 
-## 23. Ringkasan Singkat untuk Presentasi
+## 25. Ringkasan Singkat untuk Presentasi
 
-Bahas adalah full-stack AI MVP untuk melatih percakapan uang yang sensitif. Frontend dibangun dengan Next.js dan React. Auth dan database memakai Supabase dengan RLS. AI memakai Gemini melalui Vercel AI SDK. Fitur utama adalah form skenario, roleplay in-character, mode adaptif, skor drama, pesan siap kirim, rewrite tone, kalimat andalan, mode demo, dashboard kemajuan, dan riwayat latihan privat. Endpoint utama dilindungi auth, validasi input, rate limit, dan deteksi risiko.
+Bahas adalah full-stack AI MVP untuk melatih percakapan uang yang sensitif. Frontend dibangun dengan Next.js dan React. Auth dan database memakai Supabase dengan RLS. AI memakai Gemini melalui Vercel AI SDK. Fitur utama adalah form skenario, roleplay in-character, mode adaptif, skor drama, pesan siap kirim, rewrite tone, kalimat andalan, halaman kalimat tersimpan, halaman riwayat latihan lengkap, mode demo, dashboard kemajuan, dan riwayat latihan privat. Endpoint utama dilindungi auth, validasi input, rate limit, dan deteksi risiko.

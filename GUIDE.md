@@ -152,13 +152,13 @@ export async function createClient() {
 }
 ```
 
-### `middleware.ts` (refresh sesi)
+### `proxy.ts` (refresh sesi Next.js 16)
 
 ```tsx
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -356,6 +356,7 @@ export default function Home() {
   const supabase = createClient()
   const [email, setEmail] = useState("")
   const [user, setUser] = useState<any>(null)
+  const [loginStatus, setLoginStatus] = useState("")
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
@@ -366,11 +367,18 @@ export default function Home() {
   }, [])
 
   async function signIn() {
-    await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: window.location.origin },
     })
-    alert("Cek email untuk link login.")
+    const isRateLimited = error?.message.toLowerCase().includes("rate limit")
+    setLoginStatus(
+      error
+        ? isRateLimited
+          ? "Anda terkena limit email. Tunggu beberapa menit sampai 1 jam, lalu coba lagi."
+          : error.message
+        : "Cek email untuk link login.",
+    )
   }
 
   if (!user) {
@@ -383,6 +391,7 @@ export default function Home() {
         <button className="bg-black text-white px-4 py-2 rounded" onClick={signIn}>
           Kirim link login
         </button>
+        {loginStatus ? <p>{loginStatus}</p> : null}
       </main>
     )
   }
@@ -458,7 +467,7 @@ npx vitest run
 | Gejala | Akar biasanya | Fix |
 | --- | --- | --- |
 | Data tidak masuk DB | RLS aktif tapi user null / policy salah | Pastikan login & `user_id` default `auth.uid()` |
-| 401 terus | Cookie sesi tidak ke-refresh | Cek `middleware.ts` & matcher |
+| 401 terus | Cookie sesi tidak ke-refresh | Cek `proxy.ts` & matcher Next.js 16 |
 | `generateObject` error parse | Output model tidak sesuai schema | Perketat `system`, kecilkan schema |
 | Jalan di lokal, gagal di Vercel | Env var lupa di-set di Vercel | Set 3 env var di Settings |
 | Magic link redirect gagal | Domain belum di allowlist | Tambah domain di Supabase Auth URL Config |
@@ -642,3 +651,111 @@ export default function Progress() {
 - [ ]  Fungsi & endpoint baru tidak mengubah yang lama; MVP tetap jalan.
 - [ ]  Mode demo tidak menulis ke DB.
 - [ ]  Rate limit tetap aktif untuk endpoint AI baru.
+
+## 14. Pembaruan Implementasi Terkini
+
+Bagian ini menyesuaikan GUIDE dengan kondisi aplikasi yang sudah dibangun sampai saat ini. Jika bagian awal GUIDE berisi rencana atau snippet kasar, daftar di bawah adalah bentuk akhir yang perlu dicek saat menjalankan aplikasi.
+
+### 14.1 Route yang Sekarang Ada
+
+```txt
+/               Halaman utama Bahas
+/demo           Demo publik tanpa login
+/saved-lines    Semua kalimat tersimpan
+/history        Semua riwayat latihan dan detail sesi
+/progress       Dashboard kemajuan
+/auth/confirm   Callback magic link Supabase
+```
+
+### 14.2 Cara Cek Flow Utama
+
+1. Jalankan lokal:
+
+```bash
+npm.cmd run dev -- --port 3001
+```
+
+2. Buka:
+
+```txt
+http://localhost:3001
+```
+
+3. Login dengan magic link.
+4. Buat skenario dari tab **Siapkan**.
+5. Masuk tab **Latihan**.
+6. Coba mode `kalem`, `emosian`, atau aktifkan **Mode adaptif**.
+7. Kirim beberapa pesan.
+8. Klik **Akhiri dan Minta Feedback**.
+9. Klik **Buatkan Pesan** pada panel **Pesan siap kirim**.
+10. Simpan pesan ke **Kalimat Andalan**.
+11. Buka dropdown akun.
+12. Cek halaman:
+
+```txt
+/saved-lines
+/history
+/progress
+```
+
+### 14.3 Perilaku Penyimpanan Data
+
+- Skenario tersimpan ke `scenarios` saat user klik **Buat Naskah**.
+- Chat roleplay belum tersimpan selama latihan masih berjalan di browser.
+- Chat roleplay baru tersimpan ke `conversations.messages` setelah user klik **Akhiri dan Minta Feedback**.
+- Feedback tersimpan ke `conversations.feedback`.
+- Skor drama tersimpan ke `conversations.drama_score`.
+- Pesan siap kirim tersimpan ke `conversations.summary_message` setelah user klik **Buatkan Pesan**.
+- Kalimat andalan tersimpan ke `saved_lines` setelah user klik **Simpan**.
+
+### 14.4 UX Terbaru
+
+- Halaman utama hanya menampilkan satu kalimat andalan terbaru.
+- Semua kalimat lengkap ada di `/saved-lines`.
+- Halaman utama hanya menampilkan preview riwayat latihan terbaru.
+- Semua riwayat lengkap ada di `/history`.
+- Detail sesi lama di `/history` tampil dalam modal berisi chat, feedback, skor drama, dan pesan siap kirim.
+- Dropdown akun berisi `Kemajuan`, `Kalimat tersimpan`, `Riwayat latihan`, dan `Keluar`.
+- Logout memakai modal konfirmasi, bukan `window.alert` atau `window.confirm`.
+
+### 14.5 Checklist Validasi Sebelum Deploy
+
+Jalankan:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+npm.cmd exec vitest run
+```
+
+Cek manual di browser:
+
+- `/demo` bisa dibuka tanpa login.
+- `/` bisa login magic link.
+- `/saved-lines` menampilkan kalimat milik user.
+- `/history` menampilkan sesi selesai dan modal detail.
+- `/progress` menampilkan grafik skor drama.
+- Logout membuka modal konfirmasi.
+
+### 14.6 Catatan Supabase
+
+Pastikan tabel dan RLS sudah ada:
+
+```txt
+scenarios
+conversations
+saved_lines
+```
+
+Pastikan kolom tambahan ini ada:
+
+```txt
+conversations.summary_message
+```
+
+Jika belum ada, jalankan:
+
+```sql
+alter table public.conversations
+add column if not exists summary_message text;
+```

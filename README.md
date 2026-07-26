@@ -4,19 +4,22 @@
 
 Tagline: **Latihan ngobrol uang, sebelum ngobrol beneran.**
 
-Banyak masalah finansial keluarga tidak berhenti di angka, tetapi di cara membicarakannya: utang keluarga, pasangan belanja tanpa kabar, warisan, adik sering pinjam uang, budaya gengsi, atau mindset "rezeki diganti". Bahas membantu pengguna menyiapkan naskah pembuka, berlatih roleplay dengan AI, mendapat skor drama, lalu menyimpan kalimat andalan yang aman dipakai.
+Banyak masalah finansial keluarga tidak berhenti di angka, tetapi di cara membicarakannya: utang keluarga, pasangan belanja tanpa kabar, warisan, adik sering pinjam uang, budaya gengsi, atau mindset "rezeki diganti". Bahas membantu pengguna menyiapkan naskah pembuka, berlatih roleplay dengan AI, mendapat skor drama, membuat pesan siap kirim, lalu menyimpan kalimat andalan yang aman dipakai.
 
-## Fitur MVP
+## Fitur Utama
 
 - Login privat dengan Supabase magic link.
 - Form skenario: relasi, situasi, dan ketakutan pengguna.
 - AI membuat topik, catatan budaya, naskah pembuka, dan prediksi reaksi.
 - Roleplay chat dengan AI yang memerankan lawan bicara.
 - Pilihan tingkat kesulitan: `kalem` atau `emosian`.
+- Mode roleplay adaptif yang menyesuaikan respons AI berdasarkan perkiraan eskalasi.
 - Feedback sesi: skor drama 0-100, pemicu, peredam, dan satu saran utama.
+- Pesan siap kirim setelah feedback, lengkap dengan tombol salin dan simpan.
 - Penerjemah nada: ubah pesan emosional menjadi versi sopan dan tidak menuduh.
 - Simpan kalimat andalan per user.
-- Riwayat latihan dan ringkasan kemajuan.
+- Riwayat latihan dan dashboard kemajuan di `/progress`.
+- Mode demo publik di `/demo` tanpa login dan tanpa menulis ke database.
 - Deteksi kata risiko dan rujukan bantuan.
 - Rate limit sederhana untuk endpoint AI.
 
@@ -27,8 +30,9 @@ Bahas bukan kotak chat kosong. Nilainya ada pada alur produk yang terpandu:
 | Aspek | AI generik | Bahas |
 | --- | --- | --- |
 | Titik mulai | User harus tahu prompt sendiri | Form situasi, relasi, dan ketakutan |
-| Latihan | Sulit konsisten memerankan lawan bicara | Roleplay in-character dengan kesulitan |
-| Umpan balik | Tidak ada ukuran progres | Skor drama dan feedback konkret |
+| Latihan | Sulit konsisten memerankan lawan bicara | Roleplay in-character dengan kesulitan dan mode adaptif |
+| Umpan balik | Tidak ada ukuran progres | Skor drama, feedback konkret, dan dashboard kemajuan |
+| Aksi nyata | User harus merangkum sendiri | Pesan siap kirim setelah latihan |
 | Konteks | Cenderung generik | Sensitif pada konteks keluarga Indonesia |
 | Privasi | Riwayat tidak terstruktur | Data privat per user dengan RLS |
 
@@ -49,34 +53,48 @@ Bahas bukan kotak chat kosong. Nilainya ada pada alur produk yang terpandu:
 ```txt
 app/
   api/
-    scenario/route.ts    # Generate skenario dan simpan ke DB
-    roleplay/route.ts    # Balasan AI in-character
-    feedback/route.ts    # Skor drama dan feedback sesi
-    rewrite/route.ts     # Penerjemah nada
-  auth/confirm/route.ts  # Callback magic link Supabase SSR
-  page.tsx               # UI utama Bahas
-  globals.css            # Design tokens dan komponen visual
+    scenario/route.ts           # Generate skenario dan simpan ke DB
+    roleplay/route.ts           # Balasan AI in-character standar
+    roleplay-adaptive/route.ts  # Balasan AI adaptif berdasarkan eskalasi
+    feedback/route.ts           # Skor drama dan feedback sesi
+    summary/route.ts            # Pesan siap kirim pasca-feedback
+    rewrite/route.ts            # Penerjemah nada
+  auth/confirm/route.ts         # Callback magic link Supabase SSR
+  demo/page.tsx                 # Demo publik tanpa login dan tanpa DB write
+  progress/page.tsx             # Dashboard kemajuan user login
+  page.tsx                      # UI utama Bahas
+  globals.css                   # Design tokens dan komponen visual
+  primary-logo.svg              # Logo ikon
+  long-logo.svg                 # Logo wordmark
 lib/
-  ai.ts                  # Fungsi AI: classify, generate, act, score, transform
-  ai.test.ts             # Test checkRisk
-  rate-limit.ts          # Rate limit sederhana per user
+  ai.ts                         # Fungsi AI: scenario, roleplay, feedback, summary, rewrite, risk
+  ai.test.ts                    # Test checkRisk
+  rate-limit.ts                 # Rate limit sederhana per user
   supabase/
-    client.ts            # Browser client
-    server.ts            # Server/API client
-proxy.ts                 # Refresh session Supabase untuk Next.js 16
+    client.ts                   # Browser client
+    server.ts                   # Server/API client
+proxy.ts                        # Refresh session Supabase untuk Next.js 16
 ```
+
+## Route Aplikasi
+
+- `/`: halaman utama. Belum login menampilkan form magic link dan tombol demo; setelah login menampilkan workspace Bahas.
+- `/demo`: simulasi publik untuk mencoba alur produk tanpa login.
+- `/progress`: dashboard skor drama dari sesi yang tersimpan milik user.
+- `/auth/confirm`: callback Supabase magic link.
 
 ## Alur Produk
 
-1. User login dengan magic link.
+1. User login dengan magic link, atau membuka `/demo` untuk simulasi tanpa akun.
 2. User mengisi relasi, situasi, dan ketakutan.
 3. Sistem mengecek kata risiko.
 4. AI membuat naskah pembuka dan prediksi reaksi.
-5. User masuk ke roleplay dan memilih kesulitan.
+5. User masuk ke roleplay, memilih kesulitan, dan bisa mengaktifkan mode adaptif.
 6. AI membalas sebagai lawan bicara.
 7. User mengakhiri sesi dan mendapat skor drama.
-8. User menyimpan kalimat andalan.
-9. Riwayat latihan tersimpan privat per user.
+8. User membuat pesan siap kirim dari hasil latihan.
+9. User dapat menyalin atau menyimpan pesan ke kalimat andalan.
+10. Riwayat latihan tersimpan privat per user dan dapat dilihat di dashboard kemajuan.
 
 ## Environment Variables
 
@@ -109,6 +127,12 @@ Jika port 3000 sudah terpakai:
 npm run dev -- --port 3001
 ```
 
+Di PowerShell Windows, jika `npm` terkena execution policy, gunakan:
+
+```bash
+npm.cmd run dev -- --port 3001
+```
+
 ## Database Supabase
 
 Jalankan SQL berikut di Supabase SQL Editor:
@@ -135,6 +159,7 @@ create table public.conversations (
   messages jsonb not null default '[]'::jsonb,
   drama_score int,
   feedback jsonb,
+  summary_message text,
   created_at timestamptz not null default now()
 );
 
@@ -158,6 +183,13 @@ create policy "own conversations" on public.conversations
 
 create policy "own saved_lines" on public.saved_lines
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+```
+
+Jika tabel `conversations` sudah dibuat sebelum fitur pesan siap kirim, jalankan migrasi tambahan ini:
+
+```sql
+alter table public.conversations
+add column if not exists summary_message text;
 ```
 
 ## Supabase Auth Setup
@@ -219,6 +251,14 @@ Target test:
 - Situasi biasa tidak ditandai berisiko.
 - Rujukan bantuan muncul saat risiko terdeteksi.
 
+Validasi yang disarankan sebelum deploy:
+
+```bash
+npm run lint
+npm run build
+npm exec vitest run
+```
+
 ## Deploy ke Vercel
 
 1. Push repo ke GitHub.
@@ -233,7 +273,8 @@ GOOGLE_GENERATIVE_AI_API_KEY
 
 4. Deploy.
 5. Tambahkan domain Vercel ke Supabase Auth URL Configuration.
-6. Coba full flow: login magic link, buat skenario, roleplay, feedback, simpan kalimat.
+6. Pastikan SQL tabel, kolom `summary_message`, dan RLS sudah ada di Supabase.
+7. Coba full flow: login magic link, buat skenario, roleplay, feedback, pesan siap kirim, simpan kalimat, dan dashboard kemajuan.
 
 ## Troubleshooting
 
@@ -251,13 +292,13 @@ dan template magic link seperti bagian Supabase Auth Setup.
 
 ### `email rate limit exceeded`
 
-Supabase membatasi pengiriman magic link. UI akan menampilkan:
+Supabase membatasi pengiriman magic link per project. UI akan menampilkan:
 
 ```txt
-Anda terkena limit, coba 5 menit lagi
+Anda terkena limit email. Tunggu beberapa menit sampai 1 jam, lalu coba lagi.
 ```
 
-Untuk production, pertimbangkan custom SMTP agar limit email lebih fleksibel.
+Di Supabase, limit ini bisa dilihat di **Authentication > Rate Limits**, bagian **Rate limit for sending emails**. Untuk production, pertimbangkan custom SMTP agar limit email lebih fleksibel.
 
 ### Endpoint mengembalikan 401
 
@@ -269,25 +310,38 @@ Pastikan:
 
 - User sudah login.
 - SQL tabel sudah dibuat.
+- Kolom `summary_message` sudah ada di `conversations`.
 - RLS sudah aktif.
 - Policy `auth.uid() = user_id` sudah dibuat.
+
+### Log development menampilkan request Vite 404
+
+Jika di terminal Next.js muncul 404 seperti `/@vite/client`, `/src/main.jsx`, atau `/dev-sw.js`, biasanya itu sisa cache service worker, tab lama, atau extension browser dari project Vite/PWA sebelumnya. Untuk Bahas yang memakai Next.js, cek halaman utama di `/`, `/demo`, dan `/progress`.
 
 ## Skenario Demo 2 Menit
 
 1. Hook: "Kita sering tahu cara nabung, tapi tidak tahu cara ngomongin uang tanpa berantem."
-2. Login dengan magic link.
-3. Buat skenario: "Adik pinjam uang terus tapi tidak balikin."
-4. Tampilkan naskah pembuka dan prediksi reaksi.
-5. Masuk roleplay dengan mode `emosian`.
-6. Akhiri sesi dan tampilkan skor drama.
-7. Simpan kalimat andalan.
-8. Tutup dengan pesan: semua data privat, dan progres latihan tersimpan.
+2. Tunjukkan `/demo` untuk bukti value tanpa login.
+3. Login dengan magic link.
+4. Buat skenario: "Adik pinjam uang terus tapi tidak balikin."
+5. Tampilkan naskah pembuka dan prediksi reaksi.
+6. Masuk roleplay dengan mode `emosian` atau aktifkan mode adaptif.
+7. Akhiri sesi dan tampilkan skor drama.
+8. Buat pesan siap kirim, salin, atau simpan sebagai kalimat andalan.
+9. Buka `/progress` untuk menunjukkan tren skor.
+10. Tutup dengan pesan: data privat, progres tersimpan, dan demo bisa dicoba tanpa akun.
 
 ## Status Implementasi
 
-- Frontend MVP: siap.
+- Frontend utama: siap.
+- Desain visual sesuai `DESIGN.md`: siap.
+- Logo `primary-logo.svg` dan `long-logo.svg`: diterapkan.
 - API routes: siap.
 - Supabase Auth SSR callback: siap.
+- Mode demo publik: siap.
+- Dashboard kemajuan: siap.
+- Pesan siap kirim: siap.
+- Roleplay adaptif: siap.
 - RLS dan tabel: perlu dijalankan di Supabase project masing-masing.
 - Gemini: perlu API key valid.
 - Deploy publik: via Vercel.

@@ -457,14 +457,14 @@ Hal berikut tidak dijelaskan dalam presentasi dan harus diputuskan sebelum imple
 
 | Slide | Pokok materi | Bagian spesifikasi |
 |---|---|---|
-| 1 | Premis: literasi finansial bocor karena drama | §2 Ringkasan Produk |
-| 2 | Contoh masalah dan landasan keresahan | §2.1 Pernyataan Masalah |
-| 3 | Fintech lain vs Bahas | §2.2 Proposisi Nilai |
-| 4 | Ceritakan → roleplay → feedback | §6 Alur Utama, §8 Spesifikasi Fitur |
-| 5 | Next.js, API Routes, Gemini, Supabase, Vercel | §11 Arsitektur Tingkat Tinggi |
-| 6 | AI moat, data per pengguna, roleplay adaptif, Skor Drama | §5 Ruang Lingkup, §9 Kontrak AI |
-| 7 | Deteksi risiko, SAPA 129, RLS | §10 Keamanan dan Responsible AI |
-| 8 | MVP, hasil nyata, dan roadmap | §5 Ruang Lingkup, §14 Kriteria Selesai |
+| 1 | Premis: literasi finansial bocor karena drama | 2 Ringkasan Produk |
+| 2 | Contoh masalah dan landasan keresahan | 2.1 Pernyataan Masalah |
+| 3 | Fintech lain vs Bahas | 2.2 Proposisi Nilai |
+| 4 | Ceritakan → roleplay → feedback | 6 Alur Utama, 8 Spesifikasi Fitur |
+| 5 | Next.js, API Routes, Gemini, Supabase, Vercel | 11 Arsitektur Tingkat Tinggi |
+| 6 | AI moat, data per pengguna, roleplay adaptif, Skor Drama | 5 Ruang Lingkup, 9 Kontrak AI |
+| 7 | Deteksi risiko, SAPA 129, RLS | 10 Keamanan dan Responsible AI |
+| 8 | MVP, hasil nyata, dan roadmap | 5 Ruang Lingkup, 14 Kriteria Selesai |
 | 9 | URL produk | Referensi deployment presentasi |
 | 10 | Visi: literasi dimulai dari meja makan | Sasaran dan arah produk keseluruhan |
 
